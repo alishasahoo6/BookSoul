@@ -611,166 +611,223 @@ hr {
 .meta-value { color: var(--text-primary) !important; }
 
 /* ── Onboarding ───────────────────────────────────────────── */
-.onboard-wrap {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 2rem 1rem 4rem;
-  animation: slideUp 0.5s ease;
+.ob-wizard { max-width: 640px; margin: 0 auto; animation: slideUp .45s ease; }
+.ob-hero { text-align: center; margin-bottom: 1.2rem; }
+.ob-hero-title {
+  font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700;
+  background: linear-gradient(135deg, #a78bfa, #f472b6, #34d399);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; line-height: 1.2; margin-bottom: .25rem;
 }
-.onboard-title {
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(2rem, 4.5vw, 3rem);
-  font-weight: 700;
-  background: linear-gradient(135deg, #a78bfa 0%, #f472b6 50%, #34d399 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-align: center;
-  margin-bottom: 0.4rem;
-  line-height: 1.2;
+.ob-hero-sub { color: var(--text-muted) !important; font-size: .92rem; }
+
+/* progress stepper */
+.ob-stepper { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:1.4rem; }
+.ob-step-dot {
+  width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:.82rem; font-weight:700; flex-shrink:0;
+  border:2px solid rgba(255,255,255,.12); color:var(--text-muted); background:transparent;
+  transition: all .25s ease;
 }
-.onboard-sub {
-  text-align: center;
-  color: var(--text-muted) !important;
-  font-size: 1rem;
-  margin-bottom: 2.5rem;
+.ob-step-dot.active  { background:linear-gradient(135deg,#a78bfa,#f472b6); color:#fff; border-color:transparent; box-shadow:0 0 12px rgba(167,139,250,.45); }
+.ob-step-dot.done    { background:#22c55e; color:#fff; border-color:transparent; }
+.ob-step-line { flex:1; height:3px; max-width:80px; background:rgba(255,255,255,.1); border-radius:2px; margin:0 4px; }
+.ob-step-line.done   { background:linear-gradient(90deg,#a78bfa,#f472b6); }
+.ob-step-labels { display:flex; justify-content:space-between; max-width:480px; margin:0 auto .2rem; }
+.ob-step-lbl { font-size:.7rem; color:var(--text-muted); text-align:center; flex:1; letter-spacing:.03em; }
+.ob-step-lbl.active { color:#f472b6; font-weight:600; }
+
+/* active card */
+.ob-card {
+  background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+  border-radius: 16px; padding: 1.4rem 1.6rem; margin-bottom: .8rem;
+  backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,.35);
 }
-.onboard-step {
-  background: var(--glass);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.6rem 1.8rem;
-  margin-bottom: 1.2rem;
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow);
+.ob-badge {
+  display:inline-block; font-size:.62rem; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; color:#f472b6 !important; background:rgba(244,114,182,.12);
+  padding:3px 10px; border-radius:6px; margin-bottom:.5rem;
 }
-.onboard-step-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent1) !important;
-  margin-bottom: 0.8rem;
+.ob-card-title {
+  font-family:'Inter',sans-serif; font-size:1.15rem; font-weight:600;
+  color:var(--text-primary) !important; margin:0 0 .3rem; display:flex; align-items:center; gap:8px;
 }
-.onboard-step h3 {
-  font-family: 'Inter', sans-serif !important;
-  font-size: 1.05rem !important;
-  font-weight: 600 !important;
-  margin: 0 0 1rem 0 !important;
-  color: var(--text-primary) !important;
+.ob-card-desc { font-size:.85rem; color:var(--text-muted) !important; margin-bottom:.8rem; }
+
+/* collapsed accordion row */
+.ob-collapsed {
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07);
+  border-radius:14px; padding:.85rem 1.2rem; margin-bottom:.55rem;
+  display:flex; align-items:center; justify-content:space-between; cursor:default;
+  opacity:.65; transition: opacity .2s;
 }
-.content-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.content-option {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-.content-option:hover {
-  border-color: rgba(167,139,250,0.4);
-  background: rgba(167,139,250,0.06);
-}
+.ob-collapsed:hover { opacity:.8; }
+.ob-collapsed-left { display:flex; align-items:center; gap:10px; }
+.ob-collapsed .ob-badge { margin-bottom:0; }
+.ob-collapsed-title { font-size:.95rem; font-weight:500; color:var(--text-primary) !important; display:flex; align-items:center; gap:6px; }
+.ob-chevron { color:var(--text-muted); font-size:1rem; }
+
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================
-# ONBOARDING GATE
-# Show once per session; stores profile in session_state
+# ONBOARDING GATE  –  Wizard-style stepper
 # ============================================================
 if "onboarding_done" not in st.session_state:
 
-    st.markdown('<div class="onboard-wrap">', unsafe_allow_html=True)
+    # Inject onboarding-only overrides
+    st.markdown("""<style>
+    [data-testid="block-container"] { padding-top:.6rem !important; padding-bottom:.6rem !important; max-width:660px !important; margin:0 auto !important; }
+    div[data-testid="stVerticalBlock"] { gap:.45rem !important; }
+    div[data-testid="stRadio"] [role="radiogroup"] { gap:.3rem !important; }
+    div[data-testid="stRadio"] label { padding:4px 0 !important; font-size:.88rem !important; }
+    div[data-testid="stCheckbox"] label { padding:2px 0 !important; font-size:.85rem !important; }
+    </style>""", unsafe_allow_html=True)
+
+    # ── Step state ───────────────────────────────────────────
+    if "ob_step" not in st.session_state:
+        st.session_state["ob_step"] = 1
+    cur = st.session_state["ob_step"]
+
+    _STEP_NAMES = ["About You", "Your Preferences", "Reading Habits", "Almost Done"]
+    _STEP_ICONS = ["🎂", "❤️", "📚", "✨"]
+
+    # ── Hero ─────────────────────────────────────────────────
+    st.markdown('<div class="ob-wizard">', unsafe_allow_html=True)
     st.markdown("""
-    <div class="onboard-title">📚 Welcome to BookSoul</div>
-    <p class="onboard-sub">Before we find stories you'll love, tell us a little about yourself.</p>
-    """, unsafe_allow_html=True)
+    <div class="ob-hero">
+      <div class="ob-hero-title">📚 Welcome to BookSoul</div>
+      <p class="ob-hero-sub">Before we find stories you'll love, tell us a little about yourself.</p>
+    </div>""", unsafe_allow_html=True)
 
-    # ── Step 1: Age group ─────────────────────────────────────
-    st.markdown('<div class="onboard-step">', unsafe_allow_html=True)
-    st.markdown('<p class="onboard-step-title">Step 1 of 4 · Age Group</p>', unsafe_allow_html=True)
-    age_group = st.radio(
-        "Which age group best describes you?",
-        options=["👧 Under 13", "🧒 13–15", "🧑 16–17", "👩 18–24", "👨 25–34", "👵 35+"],
-        index=3,
-        key="ob_age",
-        help="Helps us recommend age-appropriate books."
+    # ── Progress stepper ─────────────────────────────────────
+    dots_html = ""
+    for i in range(1, 5):
+        cls = "active" if i == cur else ("done" if i < cur else "")
+        label = "✓" if i < cur else str(i)
+        dots_html += f'<span class="ob-step-dot {cls}">{label}</span>'
+        if i < 4:
+            line_cls = "done" if i < cur else ""
+            dots_html += f'<span class="ob-step-line {line_cls}"></span>'
+    labels_html = "".join(
+        f'<span class="ob-step-lbl {"active" if i+1 == cur else ""}">{n}</span>'
+        for i, n in enumerate(_STEP_NAMES)
     )
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="ob-stepper">{dots_html}</div><div class="ob-step-labels">{labels_html}</div>', unsafe_allow_html=True)
 
-    # ── Step 2: Content level ─────────────────────────────────
-    st.markdown('<div class="onboard-step">', unsafe_allow_html=True)
-    st.markdown('<p class="onboard-step-title">Step 2 of 4 · Content Comfort</p>', unsafe_allow_html=True)
-    content_level = st.radio(
-        "Which content are you comfortable reading?",
-        options=[
+    # ── STEP 1: Age Group ────────────────────────────────────
+    if cur == 1:
+        st.markdown(f"""
+        <div class="ob-card">
+          <span class="ob-badge">Step 1 of 4</span>
+          <div class="ob-card-title">🎂 Age Group</div>
+          <p class="ob-card-desc">Which age group best describes you?</p>
+        </div>""", unsafe_allow_html=True)
+        age_group = st.radio("age", ["👧 Under 13","🧒 13–15","🧑 16–17","👩 18–24","👨 25–34","👵 35+"],
+                             index=3, key="ob_age", label_visibility="collapsed")
+
+        # collapsed previews
+        st.markdown("""
+        <div class="ob-collapsed"><div class="ob-collapsed-left"><span class="ob-badge">Step 2 of 4</span><span class="ob-collapsed-title">❤️ Content Comfort</span></div><span class="ob-chevron">›</span></div>
+        <div class="ob-collapsed"><div class="ob-collapsed-left"><span class="ob-badge">Step 3 of 4</span><span class="ob-collapsed-title">📚 Reading Habits</span></div><span class="ob-chevron">›</span></div>
+        <div class="ob-collapsed"><div class="ob-collapsed-left"><span class="ob-badge">Step 4 of 4</span><span class="ob-collapsed-title">✨ Almost Done</span></div><span class="ob-chevron">›</span></div>
+        """, unsafe_allow_html=True)
+
+        _, rc = st.columns([4, 1])
+        with rc:
+            if st.button("Next →", key="ob_next1", use_container_width=True):
+                st.session_state["ob_step"] = 2; st.rerun()
+
+    # ── STEP 2: Content Comfort ──────────────────────────────
+    elif cur == 2:
+        st.markdown(f"""
+        <div class="ob-card">
+          <span class="ob-badge">Step 2 of 4</span>
+          <div class="ob-card-title">❤️ Content Comfort</div>
+          <p class="ob-card-desc">Which content are you comfortable reading?</p>
+        </div>""", unsafe_allow_html=True)
+        content_level = st.radio("content", [
             "🌼 Family Friendly — No explicit content, minimal violence",
             "💕 Mild Romance — Kissing & romance, fade-to-black only",
             "❤️ Mature Romance — Explicit romance (spice), adult readers"
-        ],
-        index=1,
-        key="ob_content"
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+        ], index=1, key="ob_content", label_visibility="collapsed")
 
-    # ── Step 3: Genres ────────────────────────────────────────
-    st.markdown('<div class="onboard-step">', unsafe_allow_html=True)
-    st.markdown('<p class="onboard-step-title">Step 3 of 4 · Favourite Genres</p>', unsafe_allow_html=True)
-    st.markdown("<p style='color:var(--text-muted);font-size:0.88rem;margin-bottom:0.8rem;'>Select all that apply.</p>", unsafe_allow_html=True)
-    _GENRES = [
-        "Romance", "Fantasy", "Mystery", "Thriller",
-        "Historical Fiction", "Science Fiction", "Horror",
-        "Literary Fiction", "Young Adult", "Non-fiction",
-        "Biography", "Self-help", "Other"
-    ]
-    genre_cols = st.columns(3)
-    selected_genres = []
-    for i, g in enumerate(_GENRES):
-        with genre_cols[i % 3]:
-            if st.checkbox(g, key=f"ob_genre_{g}"):
-                selected_genres.append(g)
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="ob-collapsed"><div class="ob-collapsed-left"><span class="ob-badge">Step 3 of 4</span><span class="ob-collapsed-title">📚 Reading Habits</span></div><span class="ob-chevron">›</span></div>
+        <div class="ob-collapsed"><div class="ob-collapsed-left"><span class="ob-badge">Step 4 of 4</span><span class="ob-collapsed-title">✨ Almost Done</span></div><span class="ob-chevron">›</span></div>
+        """, unsafe_allow_html=True)
 
-    # ── Step 4: Free-text mood ────────────────────────────────
-    st.markdown('<div class="onboard-step">', unsafe_allow_html=True)
-    st.markdown('<p class="onboard-step-title">Step 4 of 4 · What Are You Looking For?</p>', unsafe_allow_html=True)
-    free_text = st.text_input(
-        label="mood_query",
-        label_visibility="collapsed",
-        placeholder='e.g. "A slow-burn romance" · "Books like Wild Love" · "Cozy fantasy"',
-        key="ob_free"
-    )
-    st.markdown("""
-    <p style='color:var(--text-muted);font-size:0.8rem;margin-top:0.5rem;'>
-    💡 This becomes your first search — you can always change it later.
-    </p>
-    """, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        lc, rc = st.columns(2)
+        with lc:
+            if st.button("← Back", key="ob_back2", use_container_width=True):
+                st.session_state["ob_step"] = 1; st.rerun()
+        with rc:
+            if st.button("Next →", key="ob_next2", use_container_width=True):
+                st.session_state["ob_step"] = 3; st.rerun()
 
-    # ── Submit ────────────────────────────────────────────────
-    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-    _, ctr, _ = st.columns([2, 3, 2])
-    with ctr:
-        if st.button("✨ Start Discovering →", key="ob_submit", use_container_width=True):
-            st.session_state["profile"] = {
-                "age_group":     age_group,
-                "content_level": content_level,
-                "genres":        selected_genres if selected_genres else ["Any"],
-                "mood_query":    free_text.strip()
-            }
-            st.session_state["onboarding_done"] = True
-            # Pre-fill the recommendation search with their mood query
-            if free_text.strip():
-                st.session_state["rec_input"] = free_text.strip()
-            st.rerun()
+    # ── STEP 3: Favourite Genres ─────────────────────────────
+    elif cur == 3:
+        st.markdown(f"""
+        <div class="ob-card">
+          <span class="ob-badge">Step 3 of 4</span>
+          <div class="ob-card-title">📚 Favourite Genres</div>
+          <p class="ob-card-desc">Select all that apply.</p>
+        </div>""", unsafe_allow_html=True)
+        _GENRES = ["Romance","Fantasy","Mystery","Thriller","Historical Fiction","Science Fiction",
+                   "Horror","Literary Fiction","Young Adult","Non-fiction","Biography","Self-help","Other"]
+        genre_cols = st.columns(3)
+        selected_genres = []
+        for i, g in enumerate(_GENRES):
+            with genre_cols[i % 3]:
+                if st.checkbox(g, key=f"ob_genre_{g}"):
+                    selected_genres.append(g)
+        # persist genres across steps
+        st.session_state["_ob_genres"] = selected_genres
+
+        st.markdown("""
+        <div class="ob-collapsed"><div class="ob-collapsed-left"><span class="ob-badge">Step 4 of 4</span><span class="ob-collapsed-title">✨ Almost Done</span></div><span class="ob-chevron">›</span></div>
+        """, unsafe_allow_html=True)
+
+        lc, rc = st.columns(2)
+        with lc:
+            if st.button("← Back", key="ob_back3", use_container_width=True):
+                st.session_state["ob_step"] = 2; st.rerun()
+        with rc:
+            if st.button("Next →", key="ob_next3", use_container_width=True):
+                st.session_state["ob_step"] = 4; st.rerun()
+
+    # ── STEP 4: Mood / Submit ────────────────────────────────
+    elif cur == 4:
+        st.markdown(f"""
+        <div class="ob-card">
+          <span class="ob-badge">Step 4 of 4</span>
+          <div class="ob-card-title">✨ Almost Done</div>
+          <p class="ob-card-desc">Describe what you're looking for — this becomes your first search.</p>
+        </div>""", unsafe_allow_html=True)
+        free_text = st.text_input("mood", label_visibility="collapsed",
+            placeholder='e.g. "A slow-burn romance" · "Books like Wild Love" · "Cozy fantasy"', key="ob_free")
+
+        lc, rc = st.columns(2)
+        with lc:
+            if st.button("← Back", key="ob_back4", use_container_width=True):
+                st.session_state["ob_step"] = 3; st.rerun()
+        with rc:
+            if st.button("✨ Start Discovering →", key="ob_submit", use_container_width=True):
+                selected_genres = st.session_state.get("_ob_genres", ["Any"]) or ["Any"]
+                st.session_state["profile"] = {
+                    "age_group":     st.session_state.get("ob_age", "👩 18–24"),
+                    "content_level": st.session_state.get("ob_content", "💕 Mild Romance — Kissing & romance, fade-to-black only"),
+                    "genres":        selected_genres,
+                    "mood_query":    free_text.strip()
+                }
+                st.session_state["onboarding_done"] = True
+                if free_text.strip():
+                    st.session_state["rec_input"] = free_text.strip()
+                st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()   # ← Don't render anything below until onboarding is complete
+
 
 # ============================================================
 # HERO HEADER  (shown only after onboarding)

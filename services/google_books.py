@@ -30,6 +30,8 @@ def _get_api_params(query, max_results=1):
         print("[Google Books] Warning: No API key set. Rate limits may apply.")
     return params
 
+from services.utils import request_with_retry
+
 def fetch_book_info(query):
     """
     Fetches the single best-matching book from Google Books for a query.
@@ -37,7 +39,7 @@ def fetch_book_info(query):
     url = "https://www.googleapis.com/books/v1/volumes"
     try:
         print(f"[LKRE - Google Books] Querying: '{query}'")
-        response = requests.get(url, params=_get_api_params(query, max_results=1), timeout=10)
+        response = request_with_retry("GET", url, params=_get_api_params(query, max_results=1), timeout=10)
         print(f"[LKRE - Google Books] Status Code: {response.status_code}")
         response.raise_for_status()
         data = response.json()
@@ -58,7 +60,7 @@ def search_books(query, max_results=8):
     url = "https://www.googleapis.com/books/v1/volumes"
     try:
         print(f"[Google Books Search] Fetching up to {max_results} books for: '{query}'")
-        response = requests.get(url, params=_get_api_params(query, max_results=max_results), timeout=12)
+        response = request_with_retry("GET", url, params=_get_api_params(query, max_results=max_results), timeout=12)
         response.raise_for_status()
         data = response.json()
         books = []
@@ -72,4 +74,5 @@ def search_books(query, max_results=8):
         return books
     except Exception as e:
         print(f"[Google Books Search Error]: {e}")
-        return []
+        return []
+

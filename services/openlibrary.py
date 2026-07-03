@@ -1,4 +1,4 @@
-import requests
+from services.utils import request_with_retry
 
 def fetch_openlibrary_book(query):
     """
@@ -17,8 +17,9 @@ def fetch_openlibrary_book(query):
     
     try:
         print(f"[LKRE - Open Library] Querying: '{query}'")
-        response = requests.get(url, params=params, headers=headers)
+        response = request_with_retry("GET", url, params=params, headers=headers, timeout=10)
         print(f"[LKRE - Open Library] Status Code: {response.status_code}")
+
         
         response.raise_for_status()
         data = response.json()

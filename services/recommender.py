@@ -170,12 +170,21 @@ def get_semantic_recommendations(user_query, n_results=5):
 
         fetch_args = [(sq, 15) for sq in search_terms]
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-            for batch in executor.map(_fetch_single_term, fetch_args):
-                for book in batch:
-                    title_key = book["title"].strip().lower()
-                    if title_key not in seen_titles:
-                        seen_titles.add(title_key)
-                        internet_books.append(book)
+            futures = [executor.submit(_fetch_single_term, args) for args in fetch_args]
+            try:
+                for future in concurrent.futures.as_completed(futures, timeout=30.0):
+                    try:
+                        batch = future.result()
+                        for book in batch:
+                            title_key = book["title"].strip().lower()
+                            if title_key not in seen_titles:
+                                seen_titles.add(title_key)
+                                internet_books.append(book)
+                    except Exception as e:
+                        logger.warning(f"Error retrieving candidate batch: {e}")
+            except concurrent.futures.TimeoutError:
+                logger.warning("[Stage 2] Overall candidate retrieval timed out — proceeding with gathered results.")
+
 
         logger.info(f"[Stage 2] Total unique candidates: {len(internet_books)}")
 
