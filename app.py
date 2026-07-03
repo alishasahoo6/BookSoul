@@ -1265,8 +1265,8 @@ with tab3:
         <div class="book-card" style="margin-top:1rem;">
           <div style="display:flex;gap:1.5rem;align-items:flex-start;">
             <div style="flex-shrink:0;">
-              {'<img src="' + fetched_cover + '" style="width:110px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">' if fetched_cover else '<div class="no-cover" style="width:110px;">[...]
-            </div>
+              {'<img src="' + fetched_cover + '" style="width:110px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">' if fetched_cover else '<div class="no-cover" style="width:110px;">No Cover</div>'}
+
             <div>
               <div style="font-family:\'Playfair Display\',serif;font-size:1.4rem;font-weight:700;margin-bottom:4px;">{escape_display_text(book.get('title', 'Untitled'))}</div>
               <div class="meta-row"><span class="meta-key">Author(s)</span><span class="meta-value">{escape_display_text(book.get("authors", []))}</span></div>
