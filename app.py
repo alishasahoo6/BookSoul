@@ -87,6 +87,95 @@ def escape_display_text(value, fallback=""):
     return html.escape(clean_display_text(value, fallback), quote=True)
 
 
+def smart_truncate(text, max_length=280, complete_sentences=True):
+    """
+    Truncate text at word boundary, optionally trying to complete the sentence.
+    Returns complete text with proper ending.
+    """
+    if len(text) <= max_length:
+        return text
+    
+    if not complete_sentences:
+        # Truncate at word boundary
+        truncated = text[:max_length]
+        last_space = truncated.rfind(' ')
+        if last_space > max_length * 0.8:  # At least 80% of the way
+            return text[:last_space] + "."
+        return truncated + "."
+    
+    # Try to find a sentence ending within reasonable bounds
+    search_window = min(len(text), max_length + 150)
+    truncated = text[:search_window]
+    
+    # Look for sentence endings: . ! ? followed by space or end of string
+    for ending in ['. ', '! ', '? ', '.', '!', '?']:
+        idx = truncated.rfind(ending)
+        if idx > max_length * 0.75 and idx != -1:  # Found at 75%+ of max_length
+            return text[:idx + len(ending)]
+    
+    # Fallback: truncate at word boundary
+    last_space = text[:max_length].rfind(' ')
+    if last_space > max_length * 0.7:
+        return text[:last_space] + "."
+    
+    return text[:max_length] + "."
+
+
+def normalize_categories(categories):
+    """
+    Convert Google Books categories into human-friendly format.
+    E.g., "Man-woman relationships" → "Relationships & Romance"
+    """
+    if not categories:
+        return "General"
+    
+    if isinstance(categories, str):
+        categories = [categories]
+    
+    category_mapping = {
+        "fiction": "Fiction",
+        "romance": "Romance",
+        "mystery": "Mystery & Thriller",
+        "thriller": "Mystery & Thriller",
+        "fantasy": "Fantasy & Magic",
+        "science fiction": "Sci-Fi & Technology",
+        "sci-fi": "Sci-Fi & Technology",
+        "horror": "Horror & Suspense",
+        "biography": "Biography & Memoir",
+        "memoir": "Biography & Memoir",
+        "history": "History & Culture",
+        "travel": "Travel & Adventure",
+        "adventure": "Travel & Adventure",
+        "self-help": "Personal Development",
+        "health": "Health & Wellness",
+        "young adult": "Young Adult",
+        "juvenile": "Children's",
+        "relationships": "Relationships & Romance",
+        "man-woman": "Relationships & Romance",
+        "comic": "Comics & Graphic Novels",
+        "graphic": "Comics & Graphic Novels",
+        "poetry": "Poetry & Literature",
+        "literary": "Literary Fiction",
+    }
+    
+    normalized = set()
+    for cat in categories:
+        cat_lower = cat.lower().strip()
+        
+        # Check for direct matches
+        for key, value in category_mapping.items():
+            if key in cat_lower:
+                normalized.add(value)
+                break
+        else:
+            # No match found, use original but cleaned
+            normalized.add(cat.strip())
+    
+    # Return up to 2 categories, prioritizing known ones
+    result = sorted(list(normalized), key=lambda x: x not in category_mapping.values())[:2]
+    return " · ".join(result) if result else "General"
+
+
 def render_badge(value, badge_type="trope", icon=""):
     label = escape_display_text(value)
     if not label:
@@ -1082,7 +1171,8 @@ with tab1:
                 )
 
                 clean_description = clean_display_text(description)
-                desc_excerpt = clean_description[:280] + "…" if len(clean_description) > 280 else clean_description
+                # FIX: Use smart_truncate to complete sentences instead of "..."
+                desc_excerpt = smart_truncate(clean_description, max_length=280, complete_sentences=True)
                 desc_html = escape_display_text(desc_excerpt)
 
                 col_cover, col_info = st.columns([1, 4], gap="medium")
@@ -1169,18 +1259,19 @@ with tab3:
         book = st.session_state["fetched_book"]
         fetched_cover = escape_display_text(book.get("cover_image", ""))
         fetched_description = clean_display_text(book.get("description", ""))
-        fetched_description = fetched_description[:400] + "..." if len(fetched_description) > 400 else fetched_description
+        # FIX: Use smart_truncate instead of simple substring
+        fetched_description = smart_truncate(fetched_description, max_length=400, complete_sentences=True)
         st.markdown(f"""
         <div class="book-card" style="margin-top:1rem;">
           <div style="display:flex;gap:1.5rem;align-items:flex-start;">
             <div style="flex-shrink:0;">
-              {'<img src="' + fetched_cover + '" style="width:110px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">' if fetched_cover else '<div class="no-cover" style="width:110px;">📖</div>'}
+              {'<img src="' + fetched_cover + '" style="width:110px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">' if fetched_cover else '<div class="no-cover" style="width:110px;">[...]
             </div>
             <div>
               <div style="font-family:\'Playfair Display\',serif;font-size:1.4rem;font-weight:700;margin-bottom:4px;">{escape_display_text(book.get('title', 'Untitled'))}</div>
               <div class="meta-row"><span class="meta-key">Author(s)</span><span class="meta-value">{escape_display_text(book.get("authors", []))}</span></div>
               <div class="meta-row"><span class="meta-key">Published</span><span class="meta-value">{escape_display_text(book.get("published_year", ""))}</span></div>
-              <div class="meta-row"><span class="meta-key">Categories</span><span class="meta-value">{escape_display_text(book.get("categories", []))}</span></div>
+              <div class="meta-row"><span class="meta-key">Categories</span><span class="meta-value">{normalize_categories(book.get("categories", []))}</span></div>
             </div>
           </div>
           <div style="margin-top:1rem;color:#94a3b8;font-size:0.88rem;line-height:1.6;">{escape_display_text(fetched_description)}</div>
