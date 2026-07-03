@@ -1262,24 +1262,18 @@ with tab3:
         # FIX: Use smart_truncate instead of simple substring
         fetched_description = smart_truncate(fetched_description, max_length=400, complete_sentences=True)
         st.markdown(f"""
-        <div class="book-card" style="margin-top:1rem;">
-          <div style="display:flex;gap:1.5rem;align-items:flex-start;">
-            <div style="flex-shrink:0;">
-              {'<img src="' + fetched_cover + '" style="width:110px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">' if fetched_cover else '<div class="no-cover" style="width:110px;">No Cover</div>'}
-
-            <div>
-              <div style="font-family:\'Playfair Display\',serif;font-size:1.4rem;font-weight:700;margin-bottom:4px;">{escape_display_text(book.get('title', 'Untitled'))}</div>
-              <div class="meta-row"><span class="meta-key">Author(s)</span><span class="meta-value">{escape_display_text(book.get("authors", []))}</span></div>
-              <div class="meta-row"><span class="meta-key">Published</span><span class="meta-value">{escape_display_text(book.get("published_year", ""))}</span></div>
-              <div class="meta-row"><span class="meta-key">Categories</span><span class="meta-value">{normalize_categories(book.get("categories", []))}</span></div>
-            </div>
+        <div class="book-card" style="margin-top:0.5rem;">
+          <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;margin-bottom:12px;color:#a78bfa;">🧬 BookSoul Generated</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+            {render_badge('Vibe: ' + clean_display_text(soul.get('reader_vibe', 'N/A')), 'vibe')}
+            {render_badge('Style: ' + clean_display_text(soul.get('writing_style', 'N/A')), 'style')}
+            {render_badge('Tone: ' + clean_display_text(soul.get('emotional_tone', 'N/A')), 'trope')}
+            {render_badge('Pacing: ' + clean_display_text(soul.get('pacing', 'N/A')), 'trope')}
           </div>
-          <div style="margin-top:1rem;color:#94a3b8;font-size:0.88rem;line-height:1.6;">{escape_display_text(fetched_description)}</div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown('<p class="section-label" style="margin-top:1.5rem;">Extract Narrative DNA</p>', unsafe_allow_html=True)
-
+        st.markdown(dna_html, unsafe_allow_html=True)
         # Top-level button — NOT nested inside fetch block, survives re-renders
         if st.button("✨ Generate BookSoul via Gemini", key="soul_btn"):
             with st.spinner("Gemini is reading between the lines..."):
@@ -1340,3 +1334,5 @@ with tab3:
                         st.code(retrieved["document"], language="text")
             else:
                 st.error("Failed to write to ChromaDB.")
+
+
