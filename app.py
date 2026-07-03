@@ -1313,11 +1313,11 @@ with tab3:
           </div>
           <div>{render_badge_group(tropes_display, 'trope')}</div>
           <div style="margin-top:8px;">{render_badge_group(themes_display, 'vibe')}</div>
-          {dna_html}
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown('<p class="section-label" style="margin-top:1.5rem;">Save to Vector Database</p>', unsafe_allow_html=True)
+         
+        st.markdown(dna_html, unsafe_allow_html=True)
 
         book_title = st.session_state["current_book"]["title"]
         book_id = "".join(e for e in book_title if e.isalnum()).lower()
