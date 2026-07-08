@@ -30,4 +30,36 @@ QUERY_SYNONYMS = {
         ]
     }
 
+    ,
+"dark academia": {
+    "mood": [
+        "dark",
+        "atmospheric",
+        "intellectual",
+        "mysterious"
+    ],
+
+    "genres": [
+        "Dark Academia",
+        "Psychological Thriller",
+        "Mystery"
+    ],
+
+    "tone": "Gothic",
+
+    "reader_intent":
+        "The reader wants an atmospheric mystery set in an academic environment with secrets, intellectual tension, and morally complex characters.",
+
+    "search_terms": [
+        "dark academia fiction novel",
+        "gothic campus mystery",
+        "secret society thriller",
+        "elite university mystery novel",
+        "psychological dark academia fiction",
+        "literary campus thriller",
+        "academic conspiracy novel",
+        "college murder mystery fiction"
+    ]
+}
+
 }
