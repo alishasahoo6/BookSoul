@@ -1,0 +1,2 @@
+"""BookSoul application package."""
+

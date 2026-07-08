@@ -1,0 +1,8 @@
+"""Reusable constants for BookSoul."""
+
+GEMINI_MODEL_NAME = "gemini-2.5-flash"
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+BOOKSOUL_COLLECTION_NAME = "booksoul_collection"
+RELEVANCE_CONFIDENCE_THRESHOLD = 85
+LIBRARIAN_CONFIDENCE_THRESHOLD = 80
+

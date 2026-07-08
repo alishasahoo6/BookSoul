@@ -1,0 +1,2 @@
+from booksoul.generators.rule_based_booksoul import generate_book_soul
+

@@ -1,0 +1,2 @@
+"""Reusable BookSoul knowledge registries."""
+

@@ -3,13 +3,13 @@ import re
 import textwrap
 
 import streamlit as st
-from services.google_books import fetch_book_info
-from services.booksoul_generator import generate_booksoul
-from services.embeddings import store_book_vector, retrieve_book_vector
-from services.recommender import get_semantic_recommendations, generate_recommendation_explanation
-from services.comparator import compare_books, DIMENSIONS
-from services.librarian import validate_book
-from services.book_dna import ensure_book_dna, get_dna_values
+from booksoul.retrieval.google_books import fetch_book_info
+from booksoul.generators.booksoul_generator import generate_booksoul
+from booksoul.vector.embeddings import store_book_vector, retrieve_book_vector
+from booksoul.pipeline.recommender import get_semantic_recommendations, generate_recommendation_explanation
+from booksoul.pipeline.comparator import compare_books, DIMENSIONS
+from booksoul.ai.librarian import validate_book
+from booksoul.models.book_dna import ensure_book_dna, get_dna_values
 
 # ---------------------------------------------------------------------------
 # Genre maps for display-time soul field resolution
@@ -1006,11 +1006,15 @@ with tab2:
                             '<div class="no-cover" style="width:90px;height:135px;font-size:2rem;">📖</div>'
                         )
                         authors_str = escape_display_text(book.get("authors", []), "Unknown")
+                        fallback_html = ""
+                        if soul.get("is_fallback"):
+                            fallback_html = '<div style="color:#f59e0b;font-size:0.7rem;margin-bottom:8px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px;">⚠️ Fallback Heuristic Analysis</div>'
                         st.markdown(f"""
                         <div class="book-card" style="text-align:center;">
                           <div style="display:flex;justify-content:center;margin-bottom:8px;">{cover_html}</div>
                           <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;margin-bottom:4px;">{escape_display_text(book.get('title', 'Untitled'))}</div>
                           <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:10px;">by {authors_str}</div>
+                          {fallback_html}
                           <div>
                             {render_badge(soul.get('reader_vibe', 'N/A'), 'vibe', '🧬')}
                             {render_badge(soul.get('writing_style', 'N/A'), 'style', '✍️')}
@@ -1185,11 +1189,15 @@ with tab1:
 
                 with col_info:
                     # ── Card: Title + Author + Soul Match bar ──────────────
+                    fallback_indicator = ""
+                    if soul.get("is_fallback"):
+                        fallback_indicator = '<span style="color:#f59e0b;font-size:0.7rem;margin-left:auto;background:rgba(245,158,11,0.1);padding:2px 8px;border-radius:4px;border:1px solid rgba(245,158,11,0.2);display:inline-flex;align-items:center;gap:4px;font-weight:600;">⚠️ Fallback Analysis</span>'
                     st.markdown(textwrap.dedent(f"""
                     <div class="book-card">
-                      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;width:100%;">
                         <span class="rank-num">{index}</span>
                         <span style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:#f1f5f9;">{title}</span>
+                        {fallback_indicator}
                       </div>
                       <div style="color:#94a3b8;font-size:0.85rem;margin-bottom:4px;">by {authors}</div>
 
@@ -1263,23 +1271,20 @@ with tab3:
         fetched_description = smart_truncate(fetched_description, max_length=400, complete_sentences=True)
         st.markdown(f"""
         <div class="book-card" style="margin-top:1rem;">
-          <div style="display:flex;gap:1.5rem;align-items:flex-start;">
+        <div style="display:flex;gap:1.5rem;align-items:flex-start;">
             <div style="flex-shrink:0;">
-              {'<img src="' + fetched_cover + '" style="width:110px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">' if fetched_cover else '<div class="no-cover" style="width:110px;">No Cover</div>'}
-
-            <div>
-              <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;margin-bottom:4px;">{clean_display_text(book.get('title', 'Untitled'))}</div>
-              <div class="meta-row"><span class="meta-key">Author(s)</span><span class="meta-value">{clean_display_text(book.get("authors", []))}</span></div>
-              <div class="meta-row"><span class="meta-key">Published</span><span class="meta-value">{clean_display_text(book.get("published_year", ""))}</span></div>
-              <div class="meta-row"><span class="meta-key">Categories</span><span class="meta-value">{normalize_categories(book.get("categories", []))}</span></div>
+            {'<img src="' + fetched_cover + '" style="width:110px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">' if fetched_cover else '<div class="no-cover" style="width:110px;">No Cover</div>'}
             </div>
-          </div>
-          <div style="margin-top:1rem;color:#94a3b8;font-size:0.88rem;line-height:1.6;">{clean_display_text(fetched_description)}</div>
+            <div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;margin-bottom:4px;">{clean_display_text(book.get('title', 'Untitled'))}</div>
+            <div class="meta-row"><span class="meta-key">Author(s)</span><span class="meta-value">{clean_display_text(book.get("authors", []))}</span></div>
+            <div class="meta-row"><span class="meta-key">Published</span><span class="meta-value">{clean_display_text(book.get("published_year", ""))}</span></div>
+            <div class="meta-row"><span class="meta-key">Categories</span><span class="meta-value">{normalize_categories(book.get("categories", []))}</span></div>
+            </div>
+        </div>
+        <div style="margin-top:1rem;color:#94a3b8;font-size:0.88rem;line-height:1.6;">{clean_display_text(fetched_description)}</div>
         </div>
         """, unsafe_allow_html=True)
-
-        st.markdown('<p class="section-label" style="margin-top:1.5rem;">Extract Narrative DNA</p>', unsafe_allow_html=True)
-
         # Top-level button — NOT nested inside fetch block, survives re-renders
         if st.button("✨ Generate BookSoul via Gemini", key="soul_btn"):
             with st.spinner("Gemini is reading between the lines..."):
@@ -1302,9 +1307,14 @@ with tab3:
             categories=book.get("categories", themes_display),
         )
 
+                # 1. Dynamically set the header and color based on the API fallback flag
+        header_text = "⚠️ Rule-Based Analysis (Quota Fallback)" if soul.get("is_fallback") else "🧬 BookSoul Generated"
+        header_color = "#f59e0b" if soul.get("is_fallback") else "#a78bfa"
+
+        # 2. Render the primary clean card layout with your dynamic badge text
         st.markdown(f"""
         <div class="book-card" style="margin-top:0.5rem;">
-          <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;margin-bottom:12px;color:#a78bfa;">🧬 BookSoul Generated</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;margin-bottom:12px;color:{header_color};">{header_text}</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
             {render_badge('Vibe: ' + clean_display_text(soul.get('reader_vibe', 'N/A')), 'vibe')}
             {render_badge('Style: ' + clean_display_text(soul.get('writing_style', 'N/A')), 'style')}
@@ -1316,24 +1326,12 @@ with tab3:
         </div>
         """, unsafe_allow_html=True)
 
-         
+        # 3. Render the DNA HTML section underneath the card layout
         st.markdown(dna_html, unsafe_allow_html=True)
 
+        # 4. Keep your book title variable context ready for ChromaDB storage
         book_title = st.session_state["current_book"]["title"]
 
-        st.markdown(f"""
-        <div class="book-card" style="margin-top:0.5rem;">
-        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;margin-bottom:12px;color:#a78bfa;">🧬 BookSoul Generated</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-            {render_badge('Vibe: ' + clean_display_text(soul.get('reader_vibe', 'N/A')), 'vibe')}
-            {render_badge('Style: ' + clean_display_text(soul.get('writing_style', 'N/A')), 'style')}
-            {render_badge('Tone: ' + clean_display_text(soul.get('emotional_tone', 'N/A')), 'trope')}
-            {render_badge('Pacing: ' + clean_display_text(soul.get('pacing', 'N/A')), 'trope')}
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown(dna_html, unsafe_allow_html=True)
 
 
         book_id = "".join(e for e in book_title if e.isalnum()).lower()
