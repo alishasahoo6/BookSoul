@@ -245,32 +245,64 @@ def _enforce_fiction_scope(terms: list, original_query: str) -> list:
 
 
 def _fallback(query: str, hint: str = QueryType.MOOD_QUERY) -> dict:
-    """Rule-based fallback when Gemini is unavailable."""
+    """Rule-based fallback when Gemini is unavailable.
+
+    Supports MULTIPLE matching concepts instead of stopping at the first match.
+    """
 
     query_lower = query.lower()
 
-    # Look for a known keyword in the user's query
+    matched_keywords = []
+
+    mood = []
+    genres = []
+    settings = []
+    character_traits = []
+    search_terms = []
+    reader_intents = []
+
+    # Collect ALL matching concepts
     for keyword, data in QUERY_SYNONYMS.items():
-
         if keyword in query_lower:
-
             logger.info(f"[RuleFallback] Matched keyword: {keyword}")
+            matched_keywords.append(keyword)
 
-            return {
-                "query_type": hint,
-                "original_query": query,
-                "extracted_value": None,
-                "mood": data.get("mood", []),
-                "themes": [],
-                "settings": [],
-                "genre": data.get("genres", ["Unknown"])[0],
-                "tone": data.get("tone", "Unknown"),
-                "character_traits": [],
-                "reader_intent": data.get("reader_intent", ""),
-                "search_terms": data.get("search_terms", []),
-            }
+            mood.extend(data.get("mood", []))
+            genres.extend(data.get("genres", []))
+            settings.extend(data.get("settings", []))
+            character_traits.extend(data.get("character_traits", []))
+            search_terms.extend(data.get("search_terms", []))
 
-    # Default fallback if no keyword matches
+            if data.get("reader_intent"):
+                reader_intents.append(data["reader_intent"])
+
+    # Remove duplicates while preserving order
+    mood = list(dict.fromkeys(mood))
+    genres = list(dict.fromkeys(genres))
+    settings = list(dict.fromkeys(settings))
+    character_traits = list(dict.fromkeys(character_traits))
+    search_terms = list(dict.fromkeys(search_terms))
+
+    # If we matched something, build a combined interpretation
+    if matched_keywords:
+
+        search_terms = _enforce_fiction_scope(search_terms, query)
+
+        return {
+            "query_type": hint,
+            "original_query": query,
+            "extracted_value": None,
+            "mood": mood,
+            "themes": [],
+            "settings": settings,
+            "genre": genres[0] if genres else "Unknown",
+            "tone": " & ".join(mood[:2]) if mood else "Unknown",
+            "character_traits": character_traits,
+            "reader_intent": " ".join(reader_intents),
+            "search_terms": search_terms,
+        }
+
+    # Default fallback if nothing matches
     words = query.strip().split()[:3]
     base = " ".join(words)
 

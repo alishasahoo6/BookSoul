@@ -19,6 +19,7 @@ from booksoul.validation.relevance_judge import judge_recommendation_relevance
 from booksoul.pipeline.match_reason_generator import generate_match_reasons
 from booksoul.models.book_dna import ensure_book_dna
 from booksoul.common.utils import setup_logger
+from booksoul.ranking.hybrid_ranker import compute_hybrid_score
 
 import numpy as np
 
@@ -46,6 +47,7 @@ def _format_result_row(meta, distance):
     )
 
     raw_dist = float(distance)
+    print(f"[Distance] {meta.get('title')} -> {raw_dist:.4f}")
     # cosine distance: 0 = identical, 2 = opposite
     soul_match_pct = round(max(0.0, min(100.0, (1.0 - raw_dist / 2.0) * 100)))
 
@@ -248,11 +250,38 @@ def get_semantic_recommendations(user_query, n_results=5):
         query_embedding = embedding_model.encode(user_query).tolist()
         semantic_matches = _query_chroma(query_embedding, n_results=20)
 
+        for book in semantic_matches:
+            book["hybrid_score"] = compute_hybrid_score(book, user_query)
+
+        semantic_matches.sort(
+            key=lambda x: x["hybrid_score"],
+            reverse=True
+        )
         if not semantic_matches:
             logger.warning("[Stage 5] No semantic matches — returning empty list.")
             return []
 
         logger.info(f"[Stage 5] Retrieved {len(semantic_matches)} candidates from vector DB")
+
+        # Stage 5.5 — Hybrid Ranking
+        for book in semantic_matches:
+            book["hybrid_score"] = compute_hybrid_score(book, user_query)
+
+        semantic_matches.sort(
+            key=lambda x: x["hybrid_score"],
+            reverse=True
+        )
+
+        logger.info("[Stage 5.5] Hybrid ranking complete.")
+
+        print("\n===== HYBRID SCORES =====")
+        for b in semantic_matches[:10]:
+            print(
+                f"{b['title']} -> "
+                f"Similarity={b['soul_match']} | "
+                f"Hybrid={b['hybrid_score']}"
+            )
+        print("=========================\n")
 
         # ── STAGE 6: Relevance Judge ────────────────────────────────────────
         logger.info("[Stage 6] Running AI relevance judgment...")

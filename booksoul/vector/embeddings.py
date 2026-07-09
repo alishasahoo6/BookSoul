@@ -18,29 +18,82 @@ collection = chroma_client.get_or_create_collection(name=BOOKSOUL_COLLECTION_NAM
 
 def prepare_soul_text(book_title, soul_json):
     """
-    Stage 4: Embed ONLY the BookSoul representation. Never embed raw descriptions.
+    Build a rich semantic representation of a book for embedding.
+    This is the ONLY text embedded into ChromaDB.
     """
-    themes = ", ".join(soul_json.get("themes", []))
-    tropes = ", ".join(soul_json.get("tropes", []))
-    style  = soul_json.get("writing_style", "N/A")
-    tone   = soul_json.get("emotional_tone", "N/A")
-    pacing = soul_json.get("pacing", "N/A")
-    char   = soul_json.get("character_dynamics", "N/A")
-    vibe   = soul_json.get("reader_vibe", "N/A")
-    arc    = soul_json.get("emotional_arc", "N/A")
 
-    text_block = (
-        f"Book Title: {book_title}. "
-        f"Themes: {themes}. "
-        f"Tropes: {tropes}. "
-        f"Style: {style}. "
-        f"Emotional Tone: {tone}. "
-        f"Pacing: {pacing}. "
-        f"Character Dynamics: {char}. "
-        f"Reader Vibe: {vibe}. "
-        f"Emotional Arc: {arc}."
-    )
-    return text_block
+    def join(value):
+        if isinstance(value, list):
+            return ", ".join(value)
+        return value or "Unknown"
+
+    text = f"""
+TITLE
+{book_title}
+
+GENRE
+{join(soul_json.get("genre"))}
+
+THEMES
+{join(soul_json.get("themes"))}
+
+TROPES
+{join(soul_json.get("tropes"))}
+
+WRITING STYLE
+{join(soul_json.get("writing_style"))}
+
+EMOTIONAL TONE
+{join(soul_json.get("emotional_tone"))}
+
+PACING
+{join(soul_json.get("pacing"))}
+
+CHARACTER DYNAMICS
+{join(soul_json.get("character_dynamics"))}
+
+READER VIBE
+{join(soul_json.get("reader_vibe"))}
+
+EMOTIONAL ARC
+{join(soul_json.get("emotional_arc"))}
+
+ATMOSPHERE
+{join(soul_json.get("atmosphere"))}
+
+SETTING
+{join(soul_json.get("setting"))}
+
+CORE PREMISE
+{join(soul_json.get("core_premise"))}
+
+CHARACTER ARCHETYPES
+{join(soul_json.get("character_archetypes"))}
+
+EMOTIONAL DNA
+
+Emotional Depth: {soul_json.get("emotional_depth", 5)}
+
+Comfort: {soul_json.get("comfort", 5)}
+
+Humor: {soul_json.get("humor", 5)}
+
+Angst: {soul_json.get("angst", 5)}
+
+Spice: {soul_json.get("spice", 5)}
+
+Character Growth: {soul_json.get("character_growth", 5)}
+
+Reader Experience
+
+This book is ideal for readers who enjoy
+{join(soul_json.get("reader_vibe"))},
+with themes of {join(soul_json.get("themes"))},
+strong emphasis on {join(soul_json.get("character_dynamics"))},
+and a {join(soul_json.get("emotional_tone"))} atmosphere.
+"""
+
+    return text.strip()
 
 def store_book_vector(book_id, book_title, book_metadata, soul_json, quality_score=0):
     """

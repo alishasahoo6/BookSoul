@@ -61,5 +61,32 @@ QUERY_SYNONYMS = {
         "college murder mystery fiction"
     ]
 }
+,
+"mystery": {
+    "mood": [
+        "suspenseful",
+        "curious"
+    ],
+
+    "genres": [
+        "Mystery"
+    ],
+
+    "tone": "Suspenseful",
+
+    "reader_intent":
+        "The reader wants an engaging mystery with clues, investigation, and satisfying twists.",
+
+    "search_terms": [
+        "murder mystery novel",
+        "detective fiction",
+        "whodunit novel",
+        "investigative mystery fiction",
+        "crime mystery thriller",
+        "psychological mystery novel",
+        "locked room mystery",
+        "suspense mystery fiction"
+    ]
+}
 
 }
