@@ -1,213 +1,178 @@
 """
-Stage 5: Relevance Judge
-Final AI-based check: Would a reader actually enjoy this recommendation?
+Stage 5: Relevance Judge — Deterministic Scoring Implementation.
+
+All Gemini API calls have been removed.
+Relevance is computed via a multi-signal scoring function:
+
+  • Embedding similarity (via soul_match / distance_score)
+  • Keyword overlap (query ↔ title + description + themes + tropes)
+  • Genre overlap
+  • Mood overlap
+  • Metadata completeness
+  • Publication quality score
+  • Non-fiction penalties
+
+Public API is preserved exactly:
+    judge_recommendation_relevance(user_query, book, confidence_threshold) → dict
+    batch_judge_relevance(user_query, books, confidence_threshold) → (relevant, filtered)
 """
 
-import os
-import json
-import google.generativeai as genai
-from booksoul.common.utils import parse_gemini_json, setup_logger
+from booksoul.common.utils import setup_logger
 
 logger = setup_logger("RelevanceJudge")
 
- 
-def local_relevance_fallback(user_query, book):
-    """
-    Local relevance scoring when Gemini quota is exhausted.
-    """
 
+# ---------------------------------------------------------------------------
+# Genre / mood signal vocabularies
+# ---------------------------------------------------------------------------
+
+_FICTION_SIGNALS = [
+    "fiction", "novel", "mystery", "thriller", "fantasy", "romance",
+    "crime", "secret", "academy", "campus", "murder", "horror",
+    "historical", "literary", "adventure", "young adult", "sci-fi",
+    "science fiction",
+]
+
+_NON_FICTION_PENALTIES = [
+    "guide", "handbook", "encyclopedia", "manual", "reference",
+    "self-help", "psychology", "research", "textbook", "techniques",
+    "therapy", "workbook", "planner",
+]
+
+_GENRE_KEYWORDS = {
+    "romance": ["romance", "love", "relationship", "heartwarming", "emotional"],
+    "mystery": ["mystery", "detective", "crime", "murder", "investigation", "whodunit"],
+    "thriller": ["thriller", "suspense", "danger", "killer", "survival"],
+    "fantasy": ["fantasy", "magic", "dragon", "wizard", "quest", "kingdom"],
+    "horror": ["horror", "ghost", "haunted", "monster", "demon", "paranormal"],
+    "dark academia": ["dark academia", "campus", "secret society", "gothic", "university"],
+    "cozy": ["cozy", "small town", "comfort", "warm", "wholesome"],
+    "historical": ["historical", "century", "war", "era", "period", "monarchy"],
+}
+
+
+def local_relevance_fallback(user_query: str, book: dict) -> dict:
+    """
+    Deterministic relevance scoring — always used (previously only a fallback).
+    """
     query = user_query.lower()
 
-    title = book.get("title", "").lower()
+    title       = book.get("title", "").lower()
     description = book.get("description", "").lower()
+
     raw_categories = book.get("categories", [])
+    categories = " ".join(raw_categories).lower() if isinstance(raw_categories, list) else str(raw_categories).lower()
 
-    if isinstance(raw_categories, list):
-        categories = " ".join(raw_categories).lower()
-    else:
-        categories = str(raw_categories).lower()
+    soul = book.get("soul", {}) if isinstance(book.get("soul"), dict) else {}
+    themes = " ".join(soul.get("themes", [])).lower()
+    tropes = " ".join(soul.get("tropes", [])).lower()
 
-    text = f"{title} {description} {categories}"
+    text = f"{title} {description} {categories} {themes} {tropes}"
 
-    score = 0
+    # --- Base score from embedding similarity ---
+    soul_match = book.get("soul_match", 50)
+    score = soul_match * 0.4  # 40% weight from embedding
 
-    # Reward matching important query words
+    # --- Keyword overlap (query → book) ---
     for word in query.split():
         if len(word) >= 4 and word in text:
-            score += 20
+            score += 8
 
-    # Reward fiction signals
-    fiction_words = [
-        "fiction",
-        "novel",
-        "mystery",
-        "thriller",
-        "fantasy",
-        "romance",
-        "crime",
-        "secret",
-        "academy",
-        "campus",
-        "murder",
-    ]
+    # --- Genre overlap ---
+    for genre, signals in _GENRE_KEYWORDS.items():
+        genre_in_query = genre in query or any(s in query for s in signals)
+        genre_in_book  = any(s in text for s in signals)
+        if genre_in_query and genre_in_book:
+            score += 10
 
-    for word in fiction_words:
-        if word in text:
-            score += 5
+    # --- Fiction signals reward ---
+    for sig in _FICTION_SIGNALS:
+        if sig in text:
+            score += 2
 
-    # Penalize obvious non-fiction
-    non_fiction_words = [
-        "guide",
-        "handbook",
-        "encyclopedia",
-        "manual",
-        "reference",
-        "self-help",
-        "psychology",
-        "research",
-        "textbook",
-        "techniques",
-        "therapy",
-    ]
+    # --- Non-fiction penalties ---
+    for term in _NON_FICTION_PENALTIES:
+        if term in text and term not in query:
+            score -= 20
 
-    for word in non_fiction_words:
-        if word in text:
-            score -= 25
+    # --- Metadata quality bonus ---
+    if soul.get("themes"):
+        score += 3
+    if soul.get("tropes"):
+        score += 3
+    if book.get("cover_image"):
+        score += 2
 
-    score = max(0, min(score, 100))
+    # --- Clamp ---
+    score = max(0, min(100, round(score)))
 
     return {
-        "recommend": score >= 40,
-        "confidence": score,
-        "reason": "Local relevance fallback",
+        "recommend":       score >= 40,
+        "confidence":      score,
+        "reason":          f"Deterministic multi-signal score: {score}/100",
         "below_threshold": score < 40,
     }
-def judge_recommendation_relevance(user_query, book, confidence_threshold=85):
+
+
+def judge_recommendation_relevance(user_query: str, book: dict, confidence_threshold: int = 40) -> dict:
     """
-    Stage 5: Final AI-based relevance check.
-    
-    Even if a book is valid and semantically ranked high, we do a final sanity check:
-    "Would a reader searching for '{user_query}' actually enjoy this book?"
-    
+    Stage 5: Deterministic relevance check.
+
     Args:
-        user_query: The user's original query
-        book: Book dictionary
-        confidence_threshold: Minimum confidence to include (0-100)
-    
+        user_query          : The user's original search query
+        book                : Book dictionary
+        confidence_threshold: Minimum score to include (default lowered to 40
+                              since we are scoring without AI)
+
     Returns:
         {
-            "recommend": bool,
-            "confidence": int,  # 0-100
-            "reason": str,
+            "recommend":       bool,
+            "confidence":      int,
+            "reason":          str,
             "below_threshold": bool
         }
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return {
-            "recommend": True,
-            "confidence": 100,
-            "reason": "Skipped AI validation (No API key)",
-            "below_threshold": False
-        }
-    
-    title = book.get("title", "Unknown")
-    description = book.get("description", "")
-    
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        
-        prompt = f"""You are an expert book recommendation specialist.
+    result = local_relevance_fallback(user_query, book)
 
-A reader searched for:
-"{user_query}"
+    confidence = result["confidence"]
+    recommend  = result["recommend"] and confidence >= confidence_threshold
 
-Would they actually be delighted to receive this book as a recommendation?
+    result["recommend"]       = recommend
+    result["below_threshold"] = confidence < confidence_threshold
 
-Book Title: {title}
-Book Description: {description}
-
-Consider:
-- Is this book relevant to the search query?
-- Would it genuinely satisfy the reader's request?
-- Is this a good match or just surface-level relevance?
-
-Return JSON ONLY:
-{{
-    "recommend": true or false,
-    "confidence": 0-100,
-    "reason": "Brief explanation of your assessment"
-}}"""
-        
-        response = model.generate_content(
-            prompt,
-            generation_config={"response_mime_type": "application/json"}
+    if not recommend:
+        title = book.get("title", "Unknown")
+        logger.info(
+            f"[RelevanceJudge] Rejected '{title}' "
+            f"(score={confidence}, threshold={confidence_threshold})"
         )
-        
-        fallback_data = {"recommend": True, "confidence": 100, "reason": "Error parsing JSON"}
-        data = parse_gemini_json(response.text, fallback=fallback_data)
-        
-        confidence = data.get("confidence", 100)
-        recommend = data.get("recommend", False) and confidence >= confidence_threshold
-        
-        result = {
-            "recommend": recommend,
-            "confidence": confidence,
-            "reason": data.get("reason", ""),
-            "below_threshold": confidence < confidence_threshold
-        }
-        
-        if not recommend:
-            reason = "Rejected by Relevance Judge"
-            if result["below_threshold"]:
-                reason = f"Low relevance confidence ({confidence}%, threshold: {confidence_threshold}%)"
-            logger.info(f"Rejected by Relevance Judge: '{title}' - {reason}")
-        
-        return result
-    
-    except Exception as e:
-        error_msg = str(e).lower()
-        if "429" in error_msg or "quota" in error_msg:
-            logger.warning("Quota exceeded. Using local relevance fallback.")
-            return local_relevance_fallback(user_query, book)
-        logger.error(f"Error calling AI: {e}")
-        return {
-            "recommend": True,
-            "confidence": 100,
-            "reason": f"Error calling AI: {e}",
-            "below_threshold": False
-        }
+
+    return result
 
 
-def batch_judge_relevance(user_query, books, confidence_threshold=85):
+def batch_judge_relevance(user_query: str, books: list, confidence_threshold: int = 40) -> tuple:
     """
     Judge relevance for multiple books.
-    
-    Args:
-        user_query: The user's search query
-        books: List of books to judge
-        confidence_threshold: Minimum confidence
-    
+
     Returns:
         (relevant_books, filtered_books) lists
     """
     relevant_books = []
     filtered_books = []
-    
+
     for i, book in enumerate(books, 1):
         result = judge_recommendation_relevance(user_query, book, confidence_threshold)
-        
+
         book_with_judgment = dict(book)
         book_with_judgment["relevance_judgment"] = result
-        
+
         if result["recommend"]:
             relevant_books.append(book_with_judgment)
         else:
             filtered_books.append(book_with_judgment)
-        
+
         if i % 5 == 0:
             print(f"[RelevanceJudge] Processed {i} books... ({len(relevant_books)} relevant)")
-    
+
     print(f"[RelevanceJudge] Final: {len(relevant_books)} relevant, {len(filtered_books)} filtered")
     return relevant_books, filtered_books

@@ -163,13 +163,17 @@ def get_semantic_recommendations(user_query, n_results=5):
         logger.info(f"[Stage 1] Interpreting query: '{user_query}'")
         interpreted = interpret_query(user_query)
         search_terms = interpreted.get("search_terms", [user_query])
+        query_type = interpreted.get("query_type")
+        extracted_value = interpreted.get("extracted_value")
         logger.info(f"[Stage 1] Type={interpreted.get('query_type')} | Terms={search_terms[:3]}")
 
         # ── STAGE 2: Parallel Candidate Retrieval ──────────────────────────
         logger.info(f"[Stage 2] Fetching candidates in parallel ({len(search_terms)} terms)...")
         seen_titles: set = set()
         internet_books = []
+        
 
+        logger.info(f"[Stage 2] Search terms: {search_terms}")
         fetch_args = [(sq, 15) for sq in search_terms]
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             futures = [executor.submit(_fetch_single_term, args) for args in fetch_args]
@@ -284,9 +288,9 @@ def get_semantic_recommendations(user_query, n_results=5):
         print("=========================\n")
 
         # ── STAGE 6: Relevance Judge ────────────────────────────────────────
-        logger.info("[Stage 6] Running AI relevance judgment...")
+        logger.info("[Stage 6] Running deterministic relevance scoring...")
         final_candidates = []
-        confidence_threshold = 85
+        confidence_threshold = 35  # Deterministic scorer: lower threshold than AI
 
         for m in semantic_matches:
             title = m.get("title", "")

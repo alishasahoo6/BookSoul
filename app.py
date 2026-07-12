@@ -1205,8 +1205,8 @@ with col_main:
         with col_rec_btn:
             search_clicked = st.button("🔮 Search", key="rec_search_submit_btn", use_container_width=True)
             
-        if (search_clicked or rec_query) and recommend_query.strip():
-            # Add to search history if new
+        if search_clicked:
+            print("=== SEARCH BUTTON CLICKED ===")
             if recommend_query.strip() not in st.session_state["search_history"]:
                 st.session_state["search_history"].append(recommend_query.strip())
                 
@@ -1219,7 +1219,9 @@ with col_main:
                 unsafe_allow_html=True
             )
             with st.spinner("Consulting the AI Librarian..."):
+                print("=== SEARCH BUTTON CLICKED ===")
                 matches = get_semantic_recommendations(recommend_query.strip(), n_results=5)
+                print("=== SEARCH FINISHED ===")
             thinking_placeholder.empty()
             
             if matches:

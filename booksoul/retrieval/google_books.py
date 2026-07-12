@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+from booksoul.common.utils import request_with_retry
 
 # Ensure environment variables are loaded up front
 load_dotenv()
@@ -22,15 +23,38 @@ def _normalize_volume(volume_info):
     }
 
 def _get_api_params(query, max_results=1):
+    import os
+    import re
+
     api_key = os.getenv("GOOGLE_BOOKS_API_KEY", "")
-    params = {"q": query.strip(), "maxResults": max_results, "printType": "books"}
+    print("API KEY FOUND:", bool(api_key))
+
+    q = query.strip()
+
+    # Detect if this looks like a plain book title
+    is_title = (
+        len(q.split()) <= 6 and
+        not re.search(
+            r"\b(novel|fiction|romance|thriller|fantasy|mystery|book|story|books|like|similar)\b",
+            q.lower()
+        )
+    )
+
+    if is_title:
+        q = f'intitle:"{q}"'
+
+    params = {
+        "q": q,
+        "maxResults": max_results,
+        "printType": "books",
+    }
+
     if api_key:
         params["key"] = api_key
     else:
         print("[Google Books] Warning: No API key set. Rate limits may apply.")
-    return params
 
-from booksoul.common.utils import request_with_retry
+    return params
 
 def fetch_book_info(query):
     """

@@ -1,11 +1,10 @@
  
-import os
-import json
-import google.generativeai as genai
-from booksoul.common.utils import parse_gemini_json, setup_logger
+from booksoul.common.utils import setup_logger
 from booksoul.models.book_dna import ensure_book_dna
 
 logger = setup_logger("BookSoulGenerator")
+
+
 def infer_reader_vibe(categories, description):
     text = " ".join(categories).lower() + " " + description
 
@@ -26,6 +25,7 @@ def infer_reader_vibe(categories, description):
     if "history" in text or "biography" in text or "memoir" in text:
         return "Thoughtful & Informative"
     return "General Non-Fiction"
+
 
 def infer_writing_style(categories, description):
     text = " ".join(categories).lower() + " " + description
@@ -48,6 +48,7 @@ def infer_writing_style(categories, description):
         return "Narrative Non-Fiction"
     return "Balanced & Accessible"
 
+
 def infer_emotional_tone(categories, description):
     text = " ".join(categories).lower() + " " + description
 
@@ -67,6 +68,7 @@ def infer_emotional_tone(categories, description):
         return "Reflective & Grounded"
     return "Neutral & Informative"
 
+
 def infer_pacing(categories, description):
     text = " ".join(categories).lower() + " " + description
 
@@ -81,52 +83,17 @@ def infer_pacing(categories, description):
     return "Moderate"
 
 
-import random
-from google.api_core.exceptions import ResourceExhausted, GoogleAPICallError
-
 def generate_book_soul(book):
     """
-    Generates the BookSoul using the official Gemini API.
-    If quota is exhausted (429), it falls back seamlessly to rule-based analysis.
+    Generates the BookSoul using deterministic rule-based analysis.
+    All Gemini calls have been removed; the rule-based engine is now the sole source.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        logger.warning("Missing API Key. Returning local fallback analysis.")
-        return generate_book_soul_fallback(book)
-
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        
-        # Use the official SDK generation syntax instead of manual web requests
-        prompt = f"Analyze this book and return a dynamic narrative profile structure: {str(book)}"
-        response = model.generate_content(prompt)
-        
-        soul = parse_gemini_json(response.text)
-        if not soul:
-            logger.warning("Failed to parse Gemini response. Returning local fallback BookSoul.")
-            return generate_book_soul_fallback(book)
-        
-        ensure_book_dna(soul, description=book.get("description", ""), categories=book.get("categories", []))
-        return soul
-    
-    except (ResourceExhausted, GoogleAPICallError) as e:
-        logger.warning(f"Gemini API quota exhausted or call error: {e}. Triggering robust local fallback.")
-        return generate_book_soul_fallback(book)
-    
-    except Exception as e:
-        error_msg = str(e).lower()
-        if "429" in error_msg or "quota" in error_msg:
-            logger.warning(f"Gemini API quota exhausted: {e}. Triggering robust local fallback.")
-        else:
-            logger.error(f"Unexpected error in generation: {e}. Triggering robust local fallback.")
-        return generate_book_soul_fallback(book)
+    return generate_book_soul_fallback(book)
 
 
 def generate_book_soul_fallback(book):
     """
-    Generates a rule-based BookSoul fallback using your existing text logic helpers
-    and maps them to the precise keys expected by the application frontend interface.
+    Generates a rule-based BookSoul using the modular genre-aware engine.
     """
-    from booksoul.generators.rule_based_booksoul import generate_book_soul
-    return generate_book_soul(book)
+    from booksoul.generators.rule_based_booksoul import generate_book_soul as _rule_generate
+    return _rule_generate(book)
