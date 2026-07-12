@@ -1,6 +1,12 @@
-"""Shared defaults for genre rule registries."""
+"""
+Shared defaults for genre rule registries.
 
-BOOKSOUL_SCHEMA_DEFAULTS = {
+Defines the default schema keys and default scores for BookSoul entities.
+"""
+
+from typing import Dict, Any
+
+BOOKSOUL_SCHEMA_DEFAULTS: Dict[str, Any] = {
     "themes": [],
     "tropes": [],
     "emotional_tone": "Unknown",
@@ -20,4 +26,5 @@ BOOKSOUL_SCHEMA_DEFAULTS = {
         "atmosphere": "Balanced",
     },
 }
+
 

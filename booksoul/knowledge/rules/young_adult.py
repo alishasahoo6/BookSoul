@@ -1,2 +1,7 @@
-RULES = {}
+"""
+Young Adult specific rules registry.
+"""
 
+from typing import Dict, Any
+
+RULES: Dict[str, Any] = {}
