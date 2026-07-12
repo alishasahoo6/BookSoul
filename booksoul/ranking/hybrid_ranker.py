@@ -1,18 +1,28 @@
-import json
+"""
+Hybrid Ranker.
+
+Calculates hybrid relevance score combining vector similarity, keyword matching,
+metadata features, and quality modifiers.
+"""
+
+from typing import Dict, Any
+from booksoul.common.utils import setup_logger
+
+logger = setup_logger("HybridRanker")
 
 
-def compute_hybrid_score(book, user_query):
+def compute_hybrid_score(book: Dict[str, Any], user_query: str) -> float:
     """
-    Hybrid recommendation score.
-
-    Returns:
-        score (0-100)
+    Computes a hybrid recommendation score from 0.0 to 100.0.
+    
+    Combines vector distance, query keyword matching across metadata, 
+    specific genre bonuses (e.g. dark academia, mystery), quality scoring,
+    and non-fiction keyword penalties.
     """
-
     distance = book.get("distance_score", 1.0)
 
     # convert distance into similarity
-    score = (2 - distance) * 50
+    score = (2.0 - distance) * 50.0
 
     query = user_query.lower()
 
@@ -49,22 +59,17 @@ def compute_hybrid_score(book, user_query):
 
     # Dark academia bonus
     if "dark academia" in query:
-
         if "dark academia" in text:
             score += 6
-
         if "secret society" in text:
             score += 4
-
         if "campus" in text:
             score += 3
-
         if "university" in text:
             score += 3
 
     # Mystery bonus
     if "mystery" in query:
-
         mystery_words = [
             "murder",
             "detective",
@@ -74,7 +79,6 @@ def compute_hybrid_score(book, user_query):
             "whodunit",
             "mystery",
         ]
-
         for word in mystery_words:
             if word in text:
                 score += 2
@@ -96,8 +100,7 @@ def compute_hybrid_score(book, user_query):
         if word in text:
             score -= 30
     
-    score = max(0, min(score, 100))
+    score = max(0.0, min(score, 100.0))
 
+    logger.debug("Computed hybrid score for '%s': %.2f", book.get("title"), score)
     return round(score, 2)
-
-    
