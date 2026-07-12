@@ -9,7 +9,7 @@ metadata. Public API is preserved exactly:
     → list[str]  (5-6 bullet points prefixed with ✓)
 """
 
-import re
+from typing import Dict, List, Any
 from booksoul.common.utils import setup_logger
 
 logger = setup_logger("MatchReasonGenerator")
@@ -18,7 +18,7 @@ logger = setup_logger("MatchReasonGenerator")
 # Mood / trope keyword → template phrases
 # ---------------------------------------------------------------------------
 
-_MOOD_PHRASES = {
+_MOOD_PHRASES: Dict[str, str] = {
     "romance":      "Delivers a rich romantic emotional arc",
     "mystery":      "Builds suspenseful mystery with satisfying reveals",
     "thriller":     "Keeps the tension high with propulsive pacing",
@@ -36,7 +36,7 @@ _MOOD_PHRASES = {
     "grief":        "Thoughtfully explores grief and emotional recovery",
 }
 
-_TROPE_PHRASES = {
+_TROPE_PHRASES: Dict[str, str] = {
     "enemies to lovers":  "Features the beloved enemies-to-lovers slow burn",
     "slow burn":          "Delivers a satisfying slow-burn romance",
     "fake dating":        "Built around the tension of a fake-dating scenario",
@@ -52,11 +52,12 @@ _TROPE_PHRASES = {
 }
 
 
-def _extract_query_signals(user_query: str) -> list[str]:
+def _extract_query_signals(user_query: str) -> List[str]:
     """Extract mood/trope matches from the user query."""
     q = user_query.lower()
     found = []
-    for phrase, template in {**_MOOD_PHRASES, **_TROPE_PHRASES}.items():
+    combined_phrases = {**_MOOD_PHRASES, **_TROPE_PHRASES}
+    for phrase, template in combined_phrases.items():
         if phrase in q:
             found.append(f"✓ {template}")
     return found
@@ -66,8 +67,8 @@ def generate_match_reasons(
     user_query: str,
     book_title: str,
     book_description: str,
-    book_soul: dict,
-) -> list:
+    book_soul: Dict[str, Any],
+) -> List[str]:
     """
     Generates 5-6 concise bullet points explaining WHY this book matches the query.
 

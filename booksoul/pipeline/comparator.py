@@ -1,18 +1,22 @@
 """
-services/comparator.py
-BookSoul Comparison Engine — scores two books across literary dimensions
-using rule-based keyword analysis on their description + soul fields.
-Zero Gemini dependency.
+BookSoul Comparison Engine.
+
+Scores two books across literary dimensions using rule-based keyword analysis 
+on their description and soul fields. Zero Gemini dependency.
 """
 
+from typing import Dict, List, Any, Tuple
 from booksoul.pipeline.knowledge_retriever import get_book
 from booksoul.generators.book_soul import generate_book_soul
+from booksoul.common.utils import setup_logger
+
+logger = setup_logger("Comparator")
 
 # ──────────────────────────────────────────────
 # Dimension definitions
 # ──────────────────────────────────────────────
 # Each entry: (display_name, icon_type, positive_keywords, negative_keywords)
-DIMENSIONS = [
+DIMENSIONS: List[Dict[str, Any]] = [
     {
         "name": "Slow Burn",
         "icon": "🔥",
@@ -104,7 +108,7 @@ DIMENSIONS = [
 ]
 
 
-def _all_text(book_data: dict, soul: dict) -> str:
+def _all_text(book_data: Dict[str, Any], soul: Dict[str, Any]) -> str:
     """Combine all indexable text from a book into one lowercase string."""
     parts = [
         book_data.get("description", ""),
@@ -119,7 +123,7 @@ def _all_text(book_data: dict, soul: dict) -> str:
     return " ".join(parts).lower()
 
 
-def _score_dimension(text: str, dim: dict) -> int:
+def _score_dimension(text: str, dim: Dict[str, Any]) -> int:
     """Score a single dimension 1-5 based on keyword presence."""
     score = 2  # neutral baseline
     for kw in dim.get("pos", []):
@@ -131,7 +135,7 @@ def _score_dimension(text: str, dim: dict) -> int:
     return max(1, min(5, score))
 
 
-def _fetch_and_process(title_query: str):
+def _fetch_and_process(title_query: str) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
     """Fetch a book via LKRE and generate its soul. Returns (book, soul) or (None, None)."""
     book = get_book(title_query.strip())
     if not book:
@@ -140,7 +144,7 @@ def _fetch_and_process(title_query: str):
     return book, soul
 
 
-def compare_books(query1: str, query2: str) -> dict:
+def compare_books(query1: str, query2: str) -> Dict[str, Any]:
     """
     Main comparison entry point.
 
@@ -156,7 +160,7 @@ def compare_books(query1: str, query2: str) -> dict:
           "summary": { winner_count1, winner_count2, verdict }
         }
     """
-    print(f"\n⚖️ [Comparator] Comparing: '{query1}' vs '{query2}'")
+    logger.info("Comparing: '%s' vs '%s'", query1, query2)
 
     book1, soul1 = _fetch_and_process(query1)
     book2, soul2 = _fetch_and_process(query2)

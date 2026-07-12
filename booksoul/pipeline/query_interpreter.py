@@ -12,6 +12,7 @@ Public API is preserved exactly:
 """
 
 import re
+from typing import List, Dict, Any, Optional
 from booksoul.common.utils import setup_logger
 from booksoul.knowledge.synonyms import QUERY_SYNONYMS
 
@@ -23,18 +24,18 @@ logger = setup_logger("QueryInterpreter")
 # ---------------------------------------------------------------------------
 
 class QueryType:
-    BOOK_QUERY   = "BOOK_QUERY"
-    AUTHOR_QUERY = "AUTHOR_QUERY"
-    MOOD_QUERY   = "MOOD_QUERY"
-    TROPE_QUERY  = "TROPE_QUERY"
-    EMOTION_QUERY = "EMOTION_QUERY"
+    BOOK_QUERY: str = "BOOK_QUERY"
+    AUTHOR_QUERY: str = "AUTHOR_QUERY"
+    MOOD_QUERY: str = "MOOD_QUERY"
+    TROPE_QUERY: str = "TROPE_QUERY"
+    EMOTION_QUERY: str = "EMOTION_QUERY"
 
 
 # ---------------------------------------------------------------------------
 # Regex patterns for classification
 # ---------------------------------------------------------------------------
 
-_BOOK_LIKE_PATTERNS = [
+_BOOK_LIKE_PATTERNS: List[str] = [
     r"\bbooks?\s+like\b",
     r"\bsimilar\s+to\b",
     r"\bif\s+you\s+liked\b",
@@ -44,7 +45,7 @@ _BOOK_LIKE_PATTERNS = [
     r"\breminds?\s+(?:me\s+)?of\b",
 ]
 
-_AUTHOR_PATTERNS = [
+_AUTHOR_PATTERNS: List[str] = [
     r"\bbooks?\s+by\b",
     r"\bauthor\s+like\b",
     r"\bwrites?\s+like\b",
@@ -52,7 +53,7 @@ _AUTHOR_PATTERNS = [
 ]
 
 # Trope patterns map to MOOD_QUERY with trope search terms
-_TROPE_PATTERNS = [
+_TROPE_PATTERNS: List[str] = [
     r"\benemies\s+to\s+lovers\b",
     r"\bslow\s+burn\b",
     r"\bfake\s+dating\b",
@@ -67,7 +68,7 @@ _TROPE_PATTERNS = [
 ]
 
 # Emotion / mood patterns
-_EMOTION_PATTERNS = [
+_EMOTION_PATTERNS: List[str] = [
     r"\bmake\s+me\s+(?:cry|feel|laugh|smile)\b",
     r"\bi\s+(?:need|want|crave)\b",
     r"\bsomething\s+(?:cozy|dark|light|heavy|heartwarming|sad|funny|happy)\b",
@@ -80,16 +81,16 @@ _EMOTION_PATTERNS = [
 # Fiction scope helpers
 # ---------------------------------------------------------------------------
 
-_FICTION_SUFFIXES = ["novel", "fiction", "romance", "book", "story", "literary"]
+_FICTION_SUFFIXES: List[str] = ["novel", "fiction", "romance", "book", "story", "literary"]
 
-_NON_FICTION_BLOCKLIST = [
+_NON_FICTION_BLOCKLIST: List[str] = [
     "economic development", "business", "guide", "manual", "handbook",
     "textbook", "workbook", "how to", "strategy", "management",
     "policy", "analysis", "report", "study", "research",
 ]
 
 
-def _enforce_fiction_scope(terms: list, original_query: str) -> list:
+def _enforce_fiction_scope(terms: List[str], original_query: str) -> List[str]:
     """
     Ensure every search term is fiction-scoped.
 
@@ -102,7 +103,7 @@ def _enforce_fiction_scope(terms: list, original_query: str) -> list:
         t = term.lower().strip()
 
         if any(block in t for block in _NON_FICTION_BLOCKLIST):
-            logger.info(f"[ScopeFilter] Dropped non-fiction term: '{term}'")
+            logger.info("Dropped non-fiction term: '%s'", term)
             continue
 
         if t == original_query.lower().strip():
@@ -115,7 +116,7 @@ def _enforce_fiction_scope(terms: list, original_query: str) -> list:
         result.append(term)
 
     if not result:
-        logger.warning("[ScopeFilter] All terms dropped — using safe fallback terms.")
+        logger.warning("All terms dropped — using safe fallback terms.")
         words = original_query.strip().split()[:3]
         base = " ".join(words)
         result = [
@@ -131,7 +132,7 @@ def _enforce_fiction_scope(terms: list, original_query: str) -> list:
 # Entity extraction helpers
 # ---------------------------------------------------------------------------
 
-_BOOK_LIKE_EXTRACTORS = [
+_BOOK_LIKE_EXTRACTORS: List[re.Pattern] = [
     re.compile(r"books?\s+like\s+['\"]?(.+?)['\"]?\s*$", re.I),
     re.compile(r"similar\s+to\s+['\"]?(.+?)['\"]?\s*$", re.I),
     re.compile(r"if\s+you\s+liked?\s+['\"]?(.+?)['\"]?\s*$", re.I),
@@ -141,7 +142,7 @@ _BOOK_LIKE_EXTRACTORS = [
     re.compile(r"same\s+(?:vibe|feel|energy)\s+as\s+['\"]?(.+?)['\"]?\s*$", re.I),
 ]
 
-_AUTHOR_EXTRACTORS = [
+_AUTHOR_EXTRACTORS: List[re.Pattern] = [
     re.compile(r"books?\s+by\s+(.+?)\s*$", re.I),
     re.compile(r"author\s+like\s+(.+?)\s*$", re.I),
     re.compile(r"writes?\s+like\s+(.+?)\s*$", re.I),
@@ -149,7 +150,7 @@ _AUTHOR_EXTRACTORS = [
 ]
 
 
-def _extract_entity(query: str, query_type: str):
+def _extract_entity(query: str, query_type: str) -> Optional[str]:
     """Extract the book title or author name from the query string."""
     extractors = (
         _BOOK_LIKE_EXTRACTORS
@@ -194,7 +195,7 @@ def _rule_preclass(query: str) -> str:
 # Search term generators
 # ---------------------------------------------------------------------------
 
-_GENRE_SEARCH_MAP = {
+_GENRE_SEARCH_MAP: Dict[str, List[str]] = {
     "romance":          ["contemporary romance novel", "romantic fiction novel", "love story fiction"],
     "fantasy":          ["fantasy fiction novel", "epic fantasy novel", "magical fantasy story"],
     "mystery":          ["mystery fiction novel", "detective novel", "whodunit fiction"],
@@ -208,7 +209,7 @@ _GENRE_SEARCH_MAP = {
 }
 
 
-def _genre_terms_from_query(query_lower: str) -> list:
+def _genre_terms_from_query(query_lower: str) -> List[str]:
     """Generate fiction-scoped search terms based on detected genre keywords."""
     terms = []
     for genre, genre_terms in _GENRE_SEARCH_MAP.items():
@@ -217,7 +218,7 @@ def _genre_terms_from_query(query_lower: str) -> list:
     return terms
 
 
-def _build_book_query_terms(entity: str, original_query: str) -> list:
+def _build_book_query_terms(entity: Optional[str], original_query: str) -> List[str]:
     """Build search terms for a BOOK_QUERY (title-based search)."""
     terms = []
     if entity:
@@ -232,7 +233,7 @@ def _build_book_query_terms(entity: str, original_query: str) -> list:
     return _enforce_fiction_scope(terms, original_query)
 
 
-def _build_author_query_terms(entity: str, original_query: str) -> list:
+def _build_author_query_terms(entity: Optional[str], original_query: str) -> List[str]:
     """Build search terms for an AUTHOR_QUERY."""
     terms = []
     if entity:
@@ -250,7 +251,7 @@ def _build_author_query_terms(entity: str, original_query: str) -> list:
 # Main public function
 # ---------------------------------------------------------------------------
 
-def interpret_query(user_query: str) -> dict:
+def interpret_query(user_query: str) -> Dict[str, Any]:
     """Convert a raw user query into structured semantic intent.
 
     Returns a dict with:
@@ -266,10 +267,9 @@ def interpret_query(user_query: str) -> dict:
         reader_intent   : str
         search_terms    : list[str]
     """
-    query_lower = user_query.lower().strip()
     query_type = _rule_preclass(user_query)
 
-    logger.info(f"[QueryInterpreter] Classified '{user_query}' → {query_type}")
+    logger.info("Classified '%s' → %s", user_query, query_type)
 
     # ── BOOK_QUERY: extract title, build title-focused search terms ──
     if query_type == QueryType.BOOK_QUERY:
@@ -315,7 +315,7 @@ def interpret_query(user_query: str) -> dict:
 # Fallback (now primary) — rule-based mood/trope interpretation
 # ---------------------------------------------------------------------------
 
-def _fallback(query: str, hint: str = QueryType.MOOD_QUERY) -> dict:
+def _fallback(query: str, hint: str = QueryType.MOOD_QUERY) -> Dict[str, Any]:
     """
     Fully rule-based query expansion.
 
@@ -334,7 +334,7 @@ def _fallback(query: str, hint: str = QueryType.MOOD_QUERY) -> dict:
     # Collect ALL matching concepts from synonym dictionary
     for keyword, data in QUERY_SYNONYMS.items():
         if keyword in query_lower:
-            logger.info(f"[RuleFallback] Matched keyword: {keyword}")
+            logger.info("Matched keyword: %s", keyword)
             matched_keywords.append(keyword)
 
             mood.extend(data.get("mood", []))
