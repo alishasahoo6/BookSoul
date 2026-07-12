@@ -1,28 +1,37 @@
+"""
+Vector embeddings module.
+
+Orchestrates loading the local SentenceTransformer embedding model and manages ChromaDB persistent vector storage.
+"""
+
 import json
+from typing import Dict, List, Any, Optional, Union
 import chromadb
 from sentence_transformers import SentenceTransformer
 from booksoul.config.constants import EMBEDDING_MODEL_NAME, BOOKSOUL_COLLECTION_NAME
 from booksoul.config.paths import CHROMA_DATA_PATH
+from booksoul.common.utils import setup_logger
+
+logger = setup_logger("Embeddings")
 
 # 1. Initialize the embedding model locally (will auto-download on first run)
-print("[Embeddings] Loading all-MiniLM-L6-v2 model...")
+logger.info("Loading all-MiniLM-L6-v2 model...")
 embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
 
 # 2. Initialize ChromaDB client pointing to our on-disk directory
 chroma_client = chromadb.PersistentClient(path=str(CHROMA_DATA_PATH))
 
 # 3. Create or get our books collection
-# Note: ChromaDB requires us to provide a custom embedding function if we want it to auto-embed,
-# but manually generating and passing vectors gives us explicit control over our data pipeline.
 collection = chroma_client.get_or_create_collection(name=BOOKSOUL_COLLECTION_NAME)
 
-def prepare_soul_text(book_title, soul_json):
+
+def prepare_soul_text(book_title: str, soul_json: Dict[str, Any]) -> str:
     """
     Build a rich semantic representation of a book for embedding.
     This is the ONLY text embedded into ChromaDB.
     """
 
-    def join(value):
+    def join(value: Any) -> str:
         if isinstance(value, list):
             return ", ".join(value)
         return value or "Unknown"
@@ -95,7 +104,14 @@ and a {join(soul_json.get("emotional_tone"))} atmosphere.
 
     return text.strip()
 
-def store_book_vector(book_id, book_title, book_metadata, soul_json, quality_score=0):
+
+def store_book_vector(
+    book_id: str,
+    book_title: str,
+    book_metadata: Dict[str, Any],
+    soul_json: Dict[str, Any],
+    quality_score: Union[int, float] = 0
+) -> bool:
     """
     Generates an embedding for a book's soul and saves it to ChromaDB along with metadata.
     """
@@ -108,14 +124,10 @@ def store_book_vector(book_id, book_title, book_metadata, soul_json, quality_sco
             "authors": ", ".join(book_metadata.get("authors", [])),
             "cover_image": book_metadata.get("cover_image", "") or "",
             "description": book_metadata.get("description", "") or "",
-
-            # NEW
             "categories": json.dumps(book_metadata.get("categories", [])),
             "page_count": book_metadata.get("page_count", 0),
             "publisher": book_metadata.get("publisher", ""),
             "published_date": book_metadata.get("published_date", ""),
-
-            # Existing
             "quality_score": quality_score,
             "soul_json_str": json.dumps(soul_json)
         }
@@ -127,11 +139,12 @@ def store_book_vector(book_id, book_title, book_metadata, soul_json, quality_sco
             metadatas=[metadata_payload]
         )
         return True
-    except Exception as e:
-        print(f"[ChromaDB Error] Write failed: {e}")
+    except Exception:
+        logger.exception("ChromaDB Write failed")
         return False
 
-def retrieve_book_vector(book_id):
+
+def retrieve_book_vector(book_id: str) -> Optional[Dict[str, Any]]:
     """
     Fetches a single stored book from ChromaDB by its ID to verify storage status.
     """
@@ -144,7 +157,6 @@ def retrieve_book_vector(book_id):
                 "metadata": result["metadatas"][0]
             }
         return None
-    except Exception as e:
-        print(f"[ChromaDB Error] Retrieval failed: {e}")
+    except Exception:
+        logger.exception("ChromaDB Retrieval failed")
         return None
-

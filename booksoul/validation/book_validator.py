@@ -1,12 +1,17 @@
 """
-PRIORITY 1: Enhanced Book Validator
-Strict filtering for notebooks, journals, planners, and other non-narrative publications.
+Enhanced Book Validator.
 
+Strict filtering for notebooks, journals, planners, and other non-narrative publications.
 This runs BEFORE BookSoul generation to avoid wasting resources.
 """
-print(">>> book_validator.py loaded")
 
-REJECT_KEYWORDS = [
+import re
+from typing import List, Dict, Any, Tuple, Optional
+from booksoul.common.utils import setup_logger
+
+logger = setup_logger("BookValidator")
+
+REJECT_KEYWORDS: List[str] = [
     # Blank/consumable products
     "notebook", "journal", "planner", "logbook", "log book", "workbook",
     "activity book", "coloring book", "blank", "prompt journal",
@@ -27,7 +32,7 @@ REJECT_KEYWORDS = [
     "bath book", "board", "cardboard",
 ]
 
-NON_STORY_KEYWORDS = [
+NON_STORY_KEYWORDS: List[str] = [
     # Reference works
     "encyclopedia",
     "dictionary",
@@ -46,7 +51,6 @@ NON_STORY_KEYWORDS = [
     "academic",
 
     # Guides
-     
     "handbook",
     "manual",
     "companion",
@@ -65,7 +69,7 @@ NON_STORY_KEYWORDS = [
     "quotes",
 ]
 
-REJECT_TITLE_PATTERNS = [
+REJECT_TITLE_PATTERNS: List[str] = [
     # Generic notebook-like titles
     r"^\d+",  # Starts with number
     r"my .*book$",
@@ -75,8 +79,7 @@ REJECT_TITLE_PATTERNS = [
 
 # Categories that BookSoul currently supports.
 # Version 1 focuses on narrative fiction only.
-
-FICTION_CATEGORIES = [
+FICTION_CATEGORIES: List[str] = [
     "fiction",
     "romance",
     "fantasy",
@@ -108,11 +111,11 @@ FICTION_CATEGORIES = [
     "small town romance",
 ]
 
-def validate_book_candidate(book):
+
+def validate_book_candidate(book: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
     """
-    PRIORITY 1: Pre-validation filtering for notebook/journal/planner etc.
+    Pre-validation filtering for notebook/journal/planner etc.
     
-    This is the FIRST filter before AI validation.
     Rejects obviously non-narrative items quickly.
     
     Args:
@@ -141,13 +144,9 @@ def validate_book_candidate(book):
     if not cover_image:
         return False, "Missing cover image"
     
-    
     # Version 1 of BookSoul supports fiction only.
-    # If none of the categories indicate fiction,
-    # reject the book before spending more resources.
-
+    # If none of the categories indicate fiction, reject.
     categories_text = " ".join(categories)
-
     has_fiction_category = any(
         keyword in categories_text
         for keyword in FICTION_CATEGORIES
@@ -190,9 +189,8 @@ def validate_book_candidate(book):
         return False, "Title too short/ambiguous"
     
     # --- Reject: No narrative content indicators ---
-    # Look for indicators that it's NOT a narrative book
     non_narrative_indicators = [
-        "100 blank", "200 blank", "365 blank",  # Count + blank
+        "100 blank", "200 blank", "365 blank",
         "for you to write", "for you to draw",
         "fill in the blanks", "fill-in", "fill in",
         "write in", "write-in", "create your own",
@@ -204,14 +202,13 @@ def validate_book_candidate(book):
     
     # --- Reject: Categories that are clearly non-narrative ---
     non_narrative_categories = [
-        "calendars", "cartography", "comics & graphic novels",  # Comics are usually narrative, but comics strips aren't
+        "calendars", "cartography", "comics & graphic novels",
         "reference", "self-help", "textbooks", "educational",
     ]
     
     for cat in categories:
         for non_narr_cat in non_narrative_categories:
             if non_narr_cat in cat:
-                # Self-help could be okay, but be cautious
                 if non_narr_cat == "self-help":
                     # Allow self-help only if it has positive indicators
                     narrative_indicators = ["memoir", "biography", "story", "narrative", "narrative non-fiction"]
@@ -224,10 +221,9 @@ def validate_book_candidate(book):
     return True, None
 
 
-def get_rejection_reasons(book):
+def get_rejection_reasons(book: Dict[str, Any]) -> str:
     """
     Debug helper: Get all rejection reasons for a book.
-    Useful for understanding why books are filtered.
     """
     is_valid, reason = validate_book_candidate(book)
     return reason if not is_valid else "VALID"

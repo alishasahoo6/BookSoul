@@ -17,6 +17,7 @@ Public API is preserved exactly:
     batch_judge_relevance(user_query, books, confidence_threshold) → (relevant, filtered)
 """
 
+from typing import List, Dict, Any, Tuple
 from booksoul.common.utils import setup_logger
 
 logger = setup_logger("RelevanceJudge")
@@ -26,20 +27,20 @@ logger = setup_logger("RelevanceJudge")
 # Genre / mood signal vocabularies
 # ---------------------------------------------------------------------------
 
-_FICTION_SIGNALS = [
+_FICTION_SIGNALS: List[str] = [
     "fiction", "novel", "mystery", "thriller", "fantasy", "romance",
     "crime", "secret", "academy", "campus", "murder", "horror",
     "historical", "literary", "adventure", "young adult", "sci-fi",
     "science fiction",
 ]
 
-_NON_FICTION_PENALTIES = [
+_NON_FICTION_PENALTIES: List[str] = [
     "guide", "handbook", "encyclopedia", "manual", "reference",
     "self-help", "psychology", "research", "textbook", "techniques",
     "therapy", "workbook", "planner",
 ]
 
-_GENRE_KEYWORDS = {
+_GENRE_KEYWORDS: Dict[str, List[str]] = {
     "romance": ["romance", "love", "relationship", "heartwarming", "emotional"],
     "mystery": ["mystery", "detective", "crime", "murder", "investigation", "whodunit"],
     "thriller": ["thriller", "suspense", "danger", "killer", "survival"],
@@ -51,9 +52,9 @@ _GENRE_KEYWORDS = {
 }
 
 
-def local_relevance_fallback(user_query: str, book: dict) -> dict:
+def local_relevance_fallback(user_query: str, book: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Deterministic relevance scoring — always used (previously only a fallback).
+    Deterministic relevance scoring — always used.
     """
     query = user_query.lower()
 
@@ -61,7 +62,10 @@ def local_relevance_fallback(user_query: str, book: dict) -> dict:
     description = book.get("description", "").lower()
 
     raw_categories = book.get("categories", [])
-    categories = " ".join(raw_categories).lower() if isinstance(raw_categories, list) else str(raw_categories).lower()
+    if isinstance(raw_categories, list):
+        categories = " ".join(raw_categories).lower()
+    else:
+        categories = str(raw_categories).lower()
 
     soul = book.get("soul", {}) if isinstance(book.get("soul"), dict) else {}
     themes = " ".join(soul.get("themes", [])).lower()
@@ -114,7 +118,11 @@ def local_relevance_fallback(user_query: str, book: dict) -> dict:
     }
 
 
-def judge_recommendation_relevance(user_query: str, book: dict, confidence_threshold: int = 40) -> dict:
+def judge_recommendation_relevance(
+    user_query: str,
+    book: Dict[str, Any],
+    confidence_threshold: int = 40
+) -> Dict[str, Any]:
     """
     Stage 5: Deterministic relevance check.
 
@@ -143,14 +151,20 @@ def judge_recommendation_relevance(user_query: str, book: dict, confidence_thres
     if not recommend:
         title = book.get("title", "Unknown")
         logger.info(
-            f"[RelevanceJudge] Rejected '{title}' "
-            f"(score={confidence}, threshold={confidence_threshold})"
+            "Rejected '%s' (score=%d, threshold=%d)",
+            title,
+            confidence,
+            confidence_threshold
         )
 
     return result
 
 
-def batch_judge_relevance(user_query: str, books: list, confidence_threshold: int = 40) -> tuple:
+def batch_judge_relevance(
+    user_query: str,
+    books: List[Dict[str, Any]],
+    confidence_threshold: int = 40
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Judge relevance for multiple books.
 
@@ -172,7 +186,7 @@ def batch_judge_relevance(user_query: str, books: list, confidence_threshold: in
             filtered_books.append(book_with_judgment)
 
         if i % 5 == 0:
-            print(f"[RelevanceJudge] Processed {i} books... ({len(relevant_books)} relevant)")
+            logger.info("Processed %d books... (%d relevant)", i, len(relevant_books))
 
-    print(f"[RelevanceJudge] Final: {len(relevant_books)} relevant, {len(filtered_books)} filtered")
+    logger.info("Final: %d relevant, %d filtered", len(relevant_books), len(filtered_books))
     return relevant_books, filtered_books
