@@ -1,12 +1,19 @@
-import requests
+"""
+Open Library API client.
 
-from booksoul.common.utils import request_with_retry
+Fetches volume metadata from Open Library Search API.
+"""
 
-def fetch_openlibrary_book(query):
+from typing import Dict, Any, Optional
+from booksoul.common.utils import request_with_retry, setup_logger
+
+logger = setup_logger("OpenLibraryClient")
+
+
+def fetch_openlibrary_book(query: str) -> Optional[Dict[str, Any]]:
     """
     Queries the Open Library Search API as a secondary source for LKRE.
     Normalizes the returned structure to match our internal BookSoul format.
-    Fixes Bug 4: Defensively type-checks 'first_sentence' fields against strings, lists, or dicts.
     """
     url = "https://openlibrary.org/search.json"
     params = {
@@ -18,16 +25,15 @@ def fetch_openlibrary_book(query):
     }
     
     try:
-        print(f"[LKRE - Open Library] Querying: '{query}'")
+        logger.info("Querying: '%s'", query)
         response = request_with_retry("GET", url, params=params, headers=headers, timeout=10)
-        print(f"[LKRE - Open Library] Status Code: {response.status_code}")
-
+        logger.info("Status Code: %d", response.status_code)
         
         response.raise_for_status()
         data = response.json()
         
         if "docs" not in data or len(data["docs"]) == 0:
-            print("[LKRE - Open Library] No docs found for this query.")
+            logger.warning("No docs found for this query.")
             return None
             
         doc = data["docs"][0]
@@ -36,7 +42,6 @@ def fetch_openlibrary_book(query):
         cover_id = doc.get("cover_i")
         cover_url = f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg" if cover_id else None
         
-        # 🛡️ Fix Bug 4: Safe polymorphic parsing for Open Library's structural discrepancies
         fs = doc.get("first_sentence", "")
         if isinstance(fs, list):
             description = fs[0] if fs else ""
@@ -64,6 +69,6 @@ def fetch_openlibrary_book(query):
         }
         return normalized_book
         
-    except requests.exceptions.RequestException as e:
-        print(f"[LKRE - Open Library Error]: {e}")
+    except Exception:
+        logger.exception("Open Library query failed")
         return None

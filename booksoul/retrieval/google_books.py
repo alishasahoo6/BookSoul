@@ -1,12 +1,21 @@
-import os
-import requests
-from dotenv import load_dotenv
-from booksoul.common.utils import request_with_retry
+"""
+Google Books API client.
 
-# Ensure environment variables are loaded up front
+Fetches volume metadata and lists of candidate matches using parameterized search filters.
+"""
+
+import os
+import re
+from typing import Dict, List, Any, Optional
+from dotenv import load_dotenv
+from booksoul.common.utils import request_with_retry, setup_logger
+
 load_dotenv()
 
-def _normalize_volume(volume_info):
+logger = setup_logger("GoogleBooksClient")
+
+
+def _normalize_volume(volume_info: Dict[str, Any]) -> Dict[str, Any]:
     """Shared helper: convert a Google Books volumeInfo dict into our standard format."""
     images = volume_info.get("imageLinks", {})
     cover_url = images.get("thumbnail") or images.get("smallThumbnail") or ""
@@ -22,12 +31,13 @@ def _normalize_volume(volume_info):
         "publisher": volume_info.get("publisher", "")
     }
 
-def _get_api_params(query, max_results=1):
-    import os
-    import re
 
+def _get_api_params(query: str, max_results: int = 1) -> Dict[str, Any]:
+    """
+    Construct parameters for the Google Books API query, auto-detecting title searches.
+    """
     api_key = os.getenv("GOOGLE_BOOKS_API_KEY", "")
-    print("API KEY FOUND:", bool(api_key))
+    logger.info("API KEY FOUND: %s", bool(api_key))
 
     q = query.strip()
 
@@ -52,23 +62,24 @@ def _get_api_params(query, max_results=1):
     if api_key:
         params["key"] = api_key
     else:
-        print("[Google Books] Warning: No API key set. Rate limits may apply.")
+        logger.warning("Warning: No API key set. Rate limits may apply.")
 
     return params
 
-def fetch_book_info(query):
+
+def fetch_book_info(query: str) -> Optional[Dict[str, Any]]:
     """
     Fetches the single best-matching book from Google Books for a query.
     """
     url = "https://www.googleapis.com/books/v1/volumes"
     try:
-        print(f"[LKRE - Google Books] Querying: '{query}'")
+        logger.info("Querying: '%s'", query)
         response = request_with_retry("GET", url, params=_get_api_params(query, max_results=5), timeout=10)
-        print(f"[LKRE - Google Books] Status Code: {response.status_code}")
+        logger.info("Status Code: %d", response.status_code)
         response.raise_for_status()
         data = response.json()
         if "items" not in data or len(data["items"]) == 0:
-            print("[LKRE - Google Books] No records returned.")
+            logger.warning("No records returned.")
             return None
 
         best_book = None
@@ -106,11 +117,12 @@ def fetch_book_info(query):
                 best_book = vi
 
         return _normalize_volume(best_book) if best_book else None
-    except Exception as e:
-        print(f"[LKRE - Google Books Error]: {e}")
+    except Exception:
+        logger.exception("Google Books query failed")
         return None
 
-def search_books(query, max_results=8):
+
+def search_books(query: str, max_results: int = 8) -> List[Dict[str, Any]]:
     """
     Searches Google Books for up to max_results books matching a query.
     Returns a list of normalized book dicts (never None).
@@ -118,7 +130,7 @@ def search_books(query, max_results=8):
     """
     url = "https://www.googleapis.com/books/v1/volumes"
     try:
-        print(f"[Google Books Search] Fetching up to {max_results} books for: '{query}'")
+        logger.info("Fetching up to %d books for: '%s'", max_results, query)
         response = request_with_retry("GET", url, params=_get_api_params(query, max_results=max_results), timeout=12)
         response.raise_for_status()
         data = response.json()
@@ -129,9 +141,8 @@ def search_books(query, max_results=8):
             if not vi.get("title") or not vi.get("description"):
                 continue
             books.append(_normalize_volume(vi))
-        print(f"[Google Books Search] Retrieved {len(books)} usable records.")
+        logger.info("Retrieved %d usable records.", len(books))
         return books
-    except Exception as e:
-        print(f"[Google Books Search Error]: {e}")
+    except Exception:
+        logger.exception("Google Books search query failed")
         return []
-
