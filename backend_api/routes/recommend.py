@@ -110,8 +110,8 @@ def recommend(request: RecommendationRequest) -> RecommendationResponse:
     except HTTPException as he:
         raise he
     except Exception:
-    logger.exception("Error handling recommendation request")
-    raise HTTPException(
-        status_code=500,
-        detail="An error occurred inside the recommendation engine."
-    )
+        logger.exception("Error handling recommendation request")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred inside the recommendation engine."
+        )

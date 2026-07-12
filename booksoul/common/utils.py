@@ -2,10 +2,17 @@ import json
 import re
 import logging
 import time
+from typing import Any, Optional
 import requests
 
 
-def setup_logger(name):
+def setup_logger(name: str) -> logging.Logger:
+    """
+    Configure and return a standard logger with a stream handler and custom format.
+    
+    If the logger already has handlers configured, returns the logger as-is
+    to prevent adding duplicate handlers.
+    """
     logger = logging.getLogger(name)
     if not logger.handlers:
         handler = logging.StreamHandler()
@@ -16,15 +23,16 @@ def setup_logger(name):
     return logger
 
 
-def parse_json_text(text, fallback=None):
+def parse_json_text(text: Optional[str], fallback: Optional[Any] = None) -> Any:
     """
-    Robust JSON parser for LLM / API output.
-    - Removes markdown fences
-    - Removes trailing commas
-    - Strips whitespace
+    Robustly parse JSON data from raw text (commonly received from LLM or API outputs).
+    
+    This helper cleans up markdown code blocks (fences), removes trailing commas
+    before parsing, and handles parsing failures gracefully by returning the
+    fallback value.
     """
     if not text:
-        return fallback or {}
+        return fallback if fallback is not None else {}
 
     # Remove markdown fences
     text = re.sub(r'```json', '', text)
@@ -41,18 +49,30 @@ def parse_json_text(text, fallback=None):
             return json.loads(text)
         except json.JSONDecodeError as e:
             logger = setup_logger("JSONParser")
-            logger.error(f"Failed to parse JSON: {e}")
-            return fallback or {}
+            logger.error("Failed to parse JSON text (error: %s). Content: %r", str(e), text)
+            return fallback if fallback is not None else {}
+    except Exception:
+        logger = setup_logger("JSONParser")
+        logger.exception("Unexpected error occurred while parsing JSON text.")
+        return fallback if fallback is not None else {}
 
 
 # Keep backward-compatible alias so any remaining callers still work
 parse_gemini_json = parse_json_text
 
 
-def request_with_retry(method, url, max_retries=3, initial_backoff=1.0, **kwargs):
+def request_with_retry(
+    method: str,
+    url: str,
+    max_retries: int = 3,
+    initial_backoff: float = 1.0,
+    **kwargs: Any
+) -> requests.Response:
     """
-    Wrapper around requests with connection error retry and exponential backoff
-    for rate-limiting (429) or temporary server errors (503).
+    Perform an HTTP request with automatic retries and exponential backoff.
+    
+    Retries on connection issues, timeouts, rate-limiting (status 429), or temporary
+    server failures (status 503).
     """
     logger = setup_logger("HTTPRetry")
     backoff = initial_backoff
@@ -63,8 +83,11 @@ def request_with_retry(method, url, max_retries=3, initial_backoff=1.0, **kwargs
             if response.status_code in (429, 503):
                 if attempt < max_retries - 1:
                     logger.warning(
-                        f"HTTP {response.status_code} received. Retrying in {backoff:.1f}s... "
-                        f"(Attempt {attempt + 1}/{max_retries})"
+                        "HTTP %d received. Retrying in %.1fs... (Attempt %d/%d)",
+                        response.status_code,
+                        backoff,
+                        attempt + 1,
+                        max_retries
                     )
                     time.sleep(backoff)
                     backoff *= 2
@@ -74,12 +97,19 @@ def request_with_retry(method, url, max_retries=3, initial_backoff=1.0, **kwargs
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             if attempt < max_retries - 1:
                 logger.warning(
-                    f"Request failed with {type(e).__name__}. Retrying in {backoff:.1f}s... "
-                    f"(Attempt {attempt + 1}/{max_retries})"
+                    "Request failed with %s. Retrying in %.1fs... (Attempt %d/%d)",
+                    type(e).__name__,
+                    backoff,
+                    attempt + 1,
+                    max_retries
                 )
                 time.sleep(backoff)
                 backoff *= 2
             else:
                 raise
+        except Exception:
+            logger.exception("Unexpected exception encountered during HTTP request.")
+            raise
 
     return requests.request(method, url, **kwargs)
+
