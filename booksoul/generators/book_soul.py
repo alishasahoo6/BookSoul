@@ -1,12 +1,14 @@
- 
+from typing import List, Dict, Any
 from booksoul.common.utils import setup_logger
-from booksoul.models.book_dna import ensure_book_dna
 
 logger = setup_logger("BookSoulGenerator")
 
 
-def infer_reader_vibe(categories, description):
-    text = " ".join(categories).lower() + " " + description
+def infer_reader_vibe(categories: List[str], description: str) -> str:
+    """
+    Heuristically infer the reader vibe based on categories and description.
+    """
+    text = " ".join(categories).lower() + " " + description.lower()
 
     if "romance" in text:
         return "Cozy Romance"
@@ -27,8 +29,11 @@ def infer_reader_vibe(categories, description):
     return "General Non-Fiction"
 
 
-def infer_writing_style(categories, description):
-    text = " ".join(categories).lower() + " " + description
+def infer_writing_style(categories: List[str], description: str) -> str:
+    """
+    Heuristically infer the writing style based on categories and description.
+    """
+    text = " ".join(categories).lower() + " " + description.lower()
 
     if "poetry" in text:
         return "Lyrical"
@@ -49,8 +54,11 @@ def infer_writing_style(categories, description):
     return "Balanced & Accessible"
 
 
-def infer_emotional_tone(categories, description):
-    text = " ".join(categories).lower() + " " + description
+def infer_emotional_tone(categories: List[str], description: str) -> str:
+    """
+    Heuristically infer the emotional tone based on categories and description.
+    """
+    text = " ".join(categories).lower() + " " + description.lower()
 
     if "romance" in text:
         return "Warm & Heartfelt"
@@ -69,8 +77,11 @@ def infer_emotional_tone(categories, description):
     return "Neutral & Informative"
 
 
-def infer_pacing(categories, description):
-    text = " ".join(categories).lower() + " " + description
+def infer_pacing(categories: List[str], description: str) -> str:
+    """
+    Heuristically infer the pacing style based on categories and description.
+    """
+    text = " ".join(categories).lower() + " " + description.lower()
 
     if "thriller" in text or "action" in text:
         return "Fast"
@@ -83,7 +94,7 @@ def infer_pacing(categories, description):
     return "Moderate"
 
 
-def generate_book_soul(book):
+def generate_book_soul(book: Dict[str, Any]) -> Dict[str, Any]:
     """
     Generates the BookSoul using deterministic rule-based analysis.
     All Gemini calls have been removed; the rule-based engine is now the sole source.
@@ -91,9 +102,10 @@ def generate_book_soul(book):
     return generate_book_soul_fallback(book)
 
 
-def generate_book_soul_fallback(book):
+def generate_book_soul_fallback(book: Dict[str, Any]) -> Dict[str, Any]:
     """
     Generates a rule-based BookSoul using the modular genre-aware engine.
     """
     from booksoul.generators.rule_based_booksoul import generate_book_soul as _rule_generate
     return _rule_generate(book)
+

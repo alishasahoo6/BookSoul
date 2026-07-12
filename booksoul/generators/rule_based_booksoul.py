@@ -1,7 +1,8 @@
 import re
+from typing import Dict, Any, List
 from booksoul.models.book_dna import ensure_book_dna
 
-GENRES_CONFIG = {
+GENRES_CONFIG: Dict[str, Dict[str, Any]] = {
     "Romance": {
         "category_keywords": ["romance", "love", "contemporary romance", "historical romance", "romantic comedy", "chick lit"],
         "text_keywords": ["love", "heartfelt", "slow burn", "friends to lovers", "enemies to lovers", "fake dating", "marriage", "relationship", "date", "sweetheart", "cozy", "grumpy", "sunshine"],
@@ -194,7 +195,7 @@ GENRES_CONFIG = {
     }
 }
 
-KEYWORD_RULES = {
+KEYWORD_RULES: Dict[str, Dict[str, Any]] = {
     # Dark Romance keywords
     "mafia": {"dna": {"spice": 2, "angst": 2}, "tropes": ["Mafia Romance"]},
     "billionaire": {"dna": {"spice": 1}, "tropes": ["Billionaire Romance"]},
@@ -272,7 +273,7 @@ KEYWORD_RULES = {
     "productivity": {"tropes": ["Actionable Strategy"]},
 }
 
-def generate_book_soul(book):
+def generate_book_soul(book: Dict[str, Any]) -> Dict[str, Any]:
     """
     Generates a rule-based BookSoul fallback using a modular genre configurations
     and keyword scoring matrix, returning the exact same schema structure.
