@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { 
   Home, 
   Sparkles, 
@@ -20,17 +20,29 @@ interface SidebarProps {
 }
 
 function SidebarContent({ className }: SidebarProps) {
-  const searchParams = useSearchParams();
-  const activeTab = searchParams.get("tab") || "Home";
+  const pathname = usePathname();
+
+  const getActiveTab = () => {
+    if (pathname === "/") return "Home";
+    if (pathname.startsWith("/discover")) return "Recommendations";
+    if (pathname.startsWith("/compare")) return "Compare";
+    if (pathname.startsWith("/shelf")) return "Shelf";
+    if (pathname.startsWith("/mood")) return "Mood";
+    if (pathname.startsWith("/favorites")) return "Favorites";
+    if (pathname.startsWith("/history")) return "History";
+    return "Home";
+  };
+
+  const activeTab = getActiveTab();
 
   const menuItems = [
-    { name: "Home", icon: Home, label: "Home" },
-    { name: "Recommendations", icon: Sparkles, label: "Discover" },
-    { name: "Compare", icon: Scale, label: "Compare Books" },
-    { name: "Shelf", icon: Library, label: "My Shelf" },
-    { name: "Mood", icon: Heart, label: "Mood Journal" },
-    { name: "Favorites", icon: Star, label: "Favorites" },
-    { name: "History", icon: History, label: "History" },
+    { path: "/", name: "Home", icon: Home, label: "Home" },
+    { path: "/discover", name: "Recommendations", icon: Sparkles, label: "Discover" },
+    { path: "/compare", name: "Compare", icon: Scale, label: "Compare Books" },
+    { path: "/shelf", name: "Shelf", icon: Library, label: "My Shelf" },
+    { path: "/mood", name: "Mood", icon: Heart, label: "Mood Journal" },
+    { path: "/favorites", name: "Favorites", icon: Star, label: "Favorites" },
+    { path: "/history", name: "History", icon: History, label: "History" },
   ];
 
   const tasteProfile = [
@@ -44,7 +56,7 @@ function SidebarContent({ className }: SidebarProps) {
     <aside className={cn("w-72 flex flex-col gap-6 p-6 border-r glass-panel h-screen sticky top-0 shrink-0 select-none z-30", className)}>
       {/* Logo */}
       <div className="flex flex-col gap-1.5 px-2">
-        <Link href="/?tab=Home" className="group flex items-center gap-2.5">
+        <Link href="/" className="group flex items-center gap-2.5">
           <span className="text-3xl font-heading font-bold text-gradient-gold tracking-tight group-hover:scale-[1.02] transition-transform duration-300">
             BookSoul
           </span>
@@ -67,7 +79,7 @@ function SidebarContent({ className }: SidebarProps) {
           return (
             <Link
               key={item.name}
-              href={`/?tab=${item.name}`}
+              href={item.path}
               className={cn(
                 "flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative group",
                 isActive

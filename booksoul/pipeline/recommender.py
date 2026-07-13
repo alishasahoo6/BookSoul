@@ -168,11 +168,6 @@ def adjust_distance_by_vibe_profile(book: Dict[str, Any], query_dims: Dict[str, 
         val = ref_book["value"].lower()
         if val in title:
             boost += 0.5
-        elif "verity" in val:
-            if "thriller" in combined_book_text or "suspense" in combined_book_text:
-                boost += 0.25
-            if "unreliable narrator" in combined_book_text or "secret" in combined_book_text:
-                boost += 0.25
 
     # 2. Reference Author match (e.g. Colleen Hoover)
     ref_author = query_dims.get("reference_author")

@@ -251,6 +251,318 @@ def _build_author_query_terms(entity: Optional[str], original_query: str) -> Lis
 # Main public function
 # ---------------------------------------------------------------------------
 
+EXPLICIT_GENRES = {
+    "romance": "Romance",
+    "fantasy": "Fantasy",
+    "mystery": "Mystery",
+    "thriller": "Thriller",
+    "horror": "Horror",
+    "sci-fi": "Sci-Fi",
+    "science fiction": "Sci-Fi",
+    "historical fiction": "Historical Fiction",
+    "historical": "Historical Fiction",
+    "young adult": "Young Adult",
+    "ya": "Young Adult",
+    "nonfiction": "Non-fiction",
+    "non-fiction": "Non-fiction",
+    "literary": "Literary",
+    "dark academia": "Dark Academia"
+}
+
+EXPLICIT_TONES = {
+    "cozy": "Cozy",
+    "warm": "Warm",
+    "heartwarming": "Heartwarming",
+    "dark": "Dark",
+    "heavy": "Heavy",
+    "sad": "Sad",
+    "funny": "Funny",
+    "happy": "Happy",
+    "wholesome": "Wholesome",
+    "grim": "Grim",
+    "somber": "Somber",
+    "tragic": "Tragic",
+    "tense": "Tense",
+    "anxious": "Anxious",
+    "dread": "Dread",
+    "atmospheric": "Atmospheric",
+    "introspective": "Introspective",
+    "reflective": "Reflective",
+    "poignant": "Poignant"
+}
+
+EXPLICIT_SETTINGS = {
+    "small town": "Small Town",
+    "small-town": "Small Town",
+    "campus": "Campus",
+    "academy": "Academy",
+    "academia": "Academy",
+    "academic": "Academy",
+    "space": "Space",
+    "castle": "Castle",
+    "forest": "Forest",
+    "rainy": "Rainy",
+    "coastal": "Coastal"
+}
+
+EXPLICIT_TROPES = {
+    "enemies to lovers": "Enemies to Lovers",
+    "slow burn": "Slow Burn",
+    "fake dating": "Fake Dating",
+    "friends to lovers": "Friends to Lovers",
+    "found family": "Found Family",
+    "chosen one": "Chosen One",
+    "forced proximity": "Forced Proximity",
+    "second chance": "Second Chance",
+    "grumpy sunshine": "Grumpy Sunshine",
+    "single dad": "Single Dad",
+    "single mom": "Single Mom",
+    "marriage of convenience": "Marriage of Convenience",
+    "age gap": "Age Gap",
+    "workplace romance": "Workplace Romance",
+    "sports romance": "Sports Romance",
+    "brother's best friend": "Brother's Best Friend",
+    "fake marriage": "Fake Marriage",
+    "forced marriage": "Forced Marriage"
+}
+
+EXPLICIT_INTENTS = {
+    "comfort read": "Comfort Read",
+    "emotional rollercoaster": "Emotional Rollercoaster",
+    "character driven": "Character Driven",
+    "character-driven": "Character Driven",
+    "plot driven": "Plot Driven",
+    "plot-driven": "Plot Driven",
+    "atmospheric": "Atmospheric",
+    "page turner": "Page Turner",
+    "page-turner": "Page Turner",
+    "low stakes": "Low Stakes",
+    "low-stakes": "Low Stakes",
+    "high stakes": "High Stakes",
+    "high-stakes": "High Stakes"
+}
+
+STRONG_INFERRED = {
+    "genres": {
+        "magic": "Fantasy",
+        "dragon": "Fantasy",
+        "witch": "Fantasy",
+        "spells": "Fantasy",
+        "murder": "Mystery",
+        "killer": "Thriller",
+        "clue": "Mystery",
+        "steamy": "Romance",
+        "passionate": "Romance",
+        "love": "Romance",
+        "spooky": "Horror",
+        "gothic": "Horror",
+        "ghost": "Horror"
+    },
+    "tones": {
+        "heartfelt": "Warm",
+        "gentle": "Cozy",
+        "spooky": "Dark",
+        "creepy": "Dark"
+    },
+    "settings": {
+        "university": "Academy",
+        "college": "Academy"
+    },
+    "tropes": {
+        "enemies": "Enemies to Lovers",
+        "banter": "Grumpy Sunshine"
+    },
+    "intents": {
+        "wholesome": "Comfort Read",
+        "gripping": "Page Turner",
+        "thrilling": "Page Turner"
+    }
+}
+
+WEAK_INFERRED = {
+    "genres": {
+        "secret": "Mystery",
+        "hidden": "Mystery",
+        "future": "Sci-Fi",
+        "ai": "Sci-Fi",
+        "space": "Sci-Fi",
+        "exciting": "Thriller",
+        "chase": "Thriller"
+    },
+    "tones": {
+        "cry": "Sad",
+        "tears": "Sad",
+        "laugh": "Funny"
+    },
+    "settings": {
+        "school": "Academy"
+    },
+    "tropes": {
+        "grumpy": "Grumpy Sunshine",
+        "sunshine": "Grumpy Sunshine",
+        "fake": "Fake Dating"
+    },
+    "intents": {
+        "grief": "Emotional Rollercoaster",
+        "heartbreak": "Emotional Rollercoaster"
+    }
+}
+
+def generate_combined_search_terms(query_lower: str, dims: dict) -> List[str]:
+    """Dynamically combine detected dimensions to generate high-quality search terms."""
+    # Cozy Fantasy case
+    if "cozy" in query_lower and "fantasy" in query_lower:
+        return [
+            "cozy fantasy novel",
+            "low stakes fantasy",
+            "magical cozy fantasy",
+            "wholesome fantasy story",
+            "cozy magical fiction"
+        ]
+
+    # Dark Academia Mystery case
+    if "dark academia" in query_lower and "mystery" in query_lower:
+        return [
+            "dark academia mystery novel",
+            "gothic campus mystery",
+            "academic thriller",
+            "secret society mystery fiction",
+            "intellectual campus mystery"
+        ]
+
+    # Small-town Romance with Found Family
+    if "small-town" in query_lower or "small town" in query_lower:
+        if "romance" in query_lower:
+            terms = ["small-town romance novel"]
+            if "found family" in query_lower:
+                terms.extend(["found family romance", "small-town romance with found family", "cozy small-town romance"])
+            return terms
+
+    # Dynamic fallback combination
+    genres_list = [g["value"] for g in dims.get("genres", [])]
+    tones_list = [t["value"] for t in dims.get("tones", [])]
+    settings_list = [s["value"] for s in dims.get("settings", [])]
+    tropes_list = [tr["value"] for tr in dims.get("tropes", [])]
+
+    combined = []
+    if tones_list and genres_list:
+        t = tones_list[0].lower()
+        g = genres_list[0].lower()
+        combined.append(f"{t} {g} novel")
+        combined.append(f"atmospheric {t} {g} story")
+    if settings_list and genres_list:
+        s = settings_list[0].lower()
+        g = genres_list[0].lower()
+        combined.append(f"{s} {g} novel")
+    if tropes_list and genres_list:
+        tr = tropes_list[0].lower()
+        g = genres_list[0].lower()
+        combined.append(f"{tr} {g} fiction")
+
+    return combined
+
+def extract_dimensions(query: str) -> dict:
+    q_lower = query.lower()
+    dimensions = {}
+
+    # 1. Reference Book
+    for pattern in _BOOK_LIKE_EXTRACTORS:
+        m = pattern.search(query)
+        if m:
+            dimensions["reference_book"] = {"value": m.group(1).strip().strip("'\"")}
+            break
+
+    # 2. Reference Author
+    for pattern in _AUTHOR_EXTRACTORS:
+        m = pattern.search(query)
+        if m:
+            dimensions["reference_author"] = {"value": m.group(1).strip().strip("'\"")}
+            break
+
+    # Helper to collect with confidence
+    def collect_dimension(explicit_map, strong_map, weak_map):
+        results = []
+        # Explicit (1.0)
+        for kw, val in explicit_map.items():
+            if kw in q_lower:
+                if not any(r["value"] == val for r in results):
+                    results.append({"value": val, "confidence": 1.0})
+        # Strong Inferred (0.8)
+        for kw, val in strong_map.items():
+            if kw in q_lower:
+                if not any(r["value"] == val for r in results):
+                    results.append({"value": val, "confidence": 0.8})
+        # Weak Inferred (0.6)
+        for kw, val in weak_map.items():
+            if kw in q_lower:
+                if not any(r["value"] == val for r in results):
+                    results.append({"value": val, "confidence": 0.6})
+        return results
+
+    # 3. Genre
+    genres = collect_dimension(EXPLICIT_GENRES, STRONG_INFERRED["genres"], WEAK_INFERRED["genres"])
+    if genres:
+        dimensions["genres"] = genres
+
+    # 4. Tone
+    tones = collect_dimension(EXPLICIT_TONES, STRONG_INFERRED["tones"], WEAK_INFERRED["tones"])
+    if tones:
+        dimensions["tones"] = tones
+
+    # 5. Setting
+    settings = collect_dimension(EXPLICIT_SETTINGS, STRONG_INFERRED["settings"], WEAK_INFERRED["settings"])
+    if settings:
+        dimensions["settings"] = settings
+
+    # 6. Tropes
+    tropes = collect_dimension(EXPLICIT_TROPES, STRONG_INFERRED["tropes"], WEAK_INFERRED["tropes"])
+    if tropes:
+        dimensions["tropes"] = tropes
+
+    # 7. Intents / Reader Vibes
+    intents = collect_dimension(EXPLICIT_INTENTS, STRONG_INFERRED["intents"], WEAK_INFERRED["intents"])
+    if intents:
+        dimensions["intents"] = intents
+
+    # 8. Dedicated Pacing
+    pacing_val = None
+    pacing_conf = 0.0
+    if "slow burn" in q_lower or "slow-burn" in q_lower:
+        pacing_val, pacing_conf = "Slow Burn", 1.0
+    elif "fast paced" in q_lower or "fast-paced" in q_lower:
+        pacing_val, pacing_conf = "Fast Paced", 1.0
+    elif "moderate" in q_lower or "moderate-paced" in q_lower or "moderate pace" in q_lower:
+        pacing_val, pacing_conf = "Moderate", 1.0
+    elif any(kw in q_lower for kw in ["page turner", "page-turner", "gripping", "thrilling"]):
+        pacing_val, pacing_conf = "Fast Paced", 0.8
+    elif any(kw in q_lower for kw in ["slow", "deliberate"]):
+        pacing_val, pacing_conf = "Slow Burn", 0.8
+    elif any(kw in q_lower for kw in ["chase", "action"]):
+        pacing_val, pacing_conf = "Fast Paced", 0.6
+        
+    if pacing_val:
+        dimensions["pacing"] = {"value": pacing_val, "confidence": pacing_conf}
+
+    return dimensions
+
+def check_community_mode(query: str, query_type: str, dims: dict) -> bool:
+    """Determine if query matches community recommendations, author searches, tropes, or mood/vibe criteria."""
+    q = query.lower().strip()
+    
+    # 1. books like <title>
+    has_book_like_pattern = any(re.search(pat, q) for pat in _BOOK_LIKE_PATTERNS)
+    
+    # 2. books by <author>
+    has_author_pattern = any(re.search(pat, q) for pat in _AUTHOR_PATTERNS)
+    
+    # 3. Trope searches (has explicit tropes or strong/weak trope matches)
+    has_trope = "tropes" in dims
+    
+    # 4. Mood/vibe searches (has genres, tones, settings, intents, or pacing)
+    has_mood_or_vibe = "genres" in dims or "tones" in dims or "settings" in dims or "intents" in dims or "pacing" in dims
+    
+    return bool(has_book_like_pattern or has_author_pattern or has_trope or has_mood_or_vibe)
+
 def interpret_query(user_query: str) -> Dict[str, Any]:
     """Convert a raw user query into structured semantic intent.
 
@@ -266,10 +578,14 @@ def interpret_query(user_query: str) -> Dict[str, Any]:
         character_traits: list[str]
         reader_intent   : str
         search_terms    : list[str]
+        dimensions      : dict
+        community_mode  : bool
     """
     query_type = _rule_preclass(user_query)
 
     logger.info("Classified '%s' → %s", user_query, query_type)
+    dims = extract_dimensions(user_query)
+    comm_mode = check_community_mode(user_query, query_type, dims)
 
     # ── BOOK_QUERY: extract title, build title-focused search terms ──
     if query_type == QueryType.BOOK_QUERY:
@@ -287,6 +603,8 @@ def interpret_query(user_query: str) -> Dict[str, Any]:
             "character_traits": [],
             "reader_intent":    f"Books similar to '{entity}'" if entity else user_query,
             "search_terms":     search_terms,
+            "dimensions":       dims,
+            "community_mode":   comm_mode,
         }
 
     # ── AUTHOR_QUERY: extract author name ──
@@ -305,23 +623,29 @@ def interpret_query(user_query: str) -> Dict[str, Any]:
             "character_traits": [],
             "reader_intent":    f"Books by or similar to author '{entity}'" if entity else user_query,
             "search_terms":     search_terms,
+            "dimensions":       dims,
+            "community_mode":   comm_mode,
         }
 
     # ── MOOD / TROPE / EMOTION: use synonym dictionary + genre detection ──
-    return _fallback(user_query, query_type)
+    return _fallback(user_query, query_type, dims, comm_mode)
 
 
 # ---------------------------------------------------------------------------
 # Fallback (now primary) — rule-based mood/trope interpretation
 # ---------------------------------------------------------------------------
 
-def _fallback(query: str, hint: str = QueryType.MOOD_QUERY) -> Dict[str, Any]:
+def _fallback(query: str, hint: str = QueryType.MOOD_QUERY, dims: dict = None, comm_mode: bool = None) -> Dict[str, Any]:
     """
     Fully rule-based query expansion.
 
     Supports MULTIPLE matching concepts instead of stopping at the first match.
     """
     query_lower = query.lower()
+    if dims is None:
+        dims = extract_dimensions(query)
+    if comm_mode is None:
+        comm_mode = check_community_mode(query, hint, dims)
 
     matched_keywords = []
     mood = []
@@ -345,6 +669,10 @@ def _fallback(query: str, hint: str = QueryType.MOOD_QUERY) -> Dict[str, Any]:
 
             if data.get("reader_intent"):
                 reader_intents.append(data["reader_intent"])
+
+    # Prepend combined search terms
+    comb_terms = generate_combined_search_terms(query_lower, dims)
+    search_terms = comb_terms + search_terms
 
     # Also add genre-detected terms
     search_terms.extend(_genre_terms_from_query(query_lower))
@@ -370,6 +698,8 @@ def _fallback(query: str, hint: str = QueryType.MOOD_QUERY) -> Dict[str, Any]:
             "character_traits": character_traits,
             "reader_intent":    " ".join(reader_intents) or query,
             "search_terms":     search_terms,
+            "dimensions":       dims,
+            "community_mode":   comm_mode,
         }
 
     # Default fallback if nothing matches at all
@@ -392,4 +722,6 @@ def _fallback(query: str, hint: str = QueryType.MOOD_QUERY) -> Dict[str, Any]:
             f"{base} contemporary romance",
             f"heartwarming {base} novel",
         ],
+        "dimensions":       dims,
+        "community_mode":   comm_mode,
     }

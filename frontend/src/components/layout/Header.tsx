@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Search, Sparkles } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function HeaderContent() {
-  const searchParams = useSearchParams();
-  const activeTab = searchParams.get("tab") || "Home";
-  
+  const pathname = usePathname();
   const [greeting, setGreeting] = useState("Good evening");
 
   useEffect(() => {
@@ -18,15 +16,21 @@ function HeaderContent() {
     else setGreeting("Good evening");
   }, []);
 
+  const getBreadcrumb = () => {
+    if (pathname === "/") return "Home";
+    const segment = pathname.substring(1);
+    return segment.charAt(0).toUpperCase() + segment.slice(1);
+  };
+
   return (
     <header className="h-16 border-b border-white/[0.05] bg-background/30 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-20 select-none">
       {/* Left: Breadcrumbs & Greeting */}
       <div className="flex items-center gap-4">
         <div className="flex flex-col">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium font-sans">
-            BookSoul / {activeTab}
+            BookSoul / {getBreadcrumb()}
           </div>
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mt-0.5 font-sans">
             <span>{greeting}, Reader</span>
             <span className="animate-wiggle">👋</span>
           </h2>

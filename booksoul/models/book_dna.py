@@ -129,6 +129,28 @@ def ensure_book_dna(soul: dict, description: str = "", categories=None) -> dict:
     if not isinstance(soul, dict):
         soul = {}
 
+    # Normalize/Ensure all required main BookSoul keys with sensible defaults
+    if "themes" not in soul or not isinstance(soul["themes"], list):
+        soul["themes"] = soul.get("themes") or []
+    if "tropes" not in soul or not isinstance(soul["tropes"], list):
+        soul["tropes"] = soul.get("tropes") or []
+    if "emotional_tone" not in soul:
+        soul["emotional_tone"] = soul.get("emotional_tone") or ""
+    if "writing_style" not in soul:
+        soul["writing_style"] = soul.get("writing_style") or ""
+    if "pacing" not in soul:
+        soul["pacing"] = soul.get("pacing") or ""
+    if "reader_vibe" not in soul:
+        soul["reader_vibe"] = soul.get("reader_vibe") or ""
+    if "character_dynamics" not in soul:
+        soul["character_dynamics"] = ""
+    if "emotional_arc" not in soul:
+        soul["emotional_arc"] = ""
+    if "is_fallback" not in soul:
+        soul["is_fallback"] = False
+    if "is_antigravity" not in soul:
+        soul["is_antigravity"] = False
+
     existing = soul.get("dna")
     if isinstance(existing, dict):
         has_scores = any(
