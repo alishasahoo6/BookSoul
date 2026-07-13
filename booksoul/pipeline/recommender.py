@@ -145,6 +145,78 @@ def _fetch_single_term(args: tuple) -> List[Dict[str, Any]]:
     return results
 
 
+def adjust_distance_by_vibe_profile(book: Dict[str, Any], query_dims: Dict[str, Any]) -> float:
+    d = float(book.get("distance_score", 1.0))
+    
+    title = book.get("title", "").lower()
+    description = book.get("description", "").lower()
+    soul = book.get("soul", {})
+    
+    themes = [t.lower() for t in soul.get("themes", [])]
+    tropes = [tr.lower() for tr in soul.get("tropes", [])]
+    tone = soul.get("emotional_tone", "").lower()
+    vibe = soul.get("reader_vibe", "").lower()
+    dynamics = soul.get("character_dynamics", "").lower()
+    
+    combined_book_text = f"{title} {description} {' '.join(themes)} {' '.join(tropes)} {tone} {vibe} {dynamics}"
+    
+    boost = 0.0
+    
+    # 1. Reference Book match (e.g. Verity)
+    ref_book = query_dims.get("reference_book")
+    if ref_book:
+        val = ref_book["value"].lower()
+        if val in title:
+            boost += 0.5
+        elif "verity" in val:
+            if "thriller" in combined_book_text or "suspense" in combined_book_text:
+                boost += 0.25
+            if "unreliable narrator" in combined_book_text or "secret" in combined_book_text:
+                boost += 0.25
+
+    # 2. Reference Author match (e.g. Colleen Hoover)
+    ref_author = query_dims.get("reference_author")
+    if ref_author:
+        val = ref_author["value"].lower()
+        authors = book.get("authors", "").lower()
+        if val in authors:
+            boost += 0.4
+
+    # 3. Settings matches
+    for s_dim in query_dims.get("settings", []):
+        val = s_dim["value"].lower()
+        if val in combined_book_text:
+            boost += 0.25 * s_dim["confidence"]
+
+    # 4. Tropes matches
+    for t_dim in query_dims.get("tropes", []):
+        val = t_dim["value"].lower()
+        if val in combined_book_text:
+            boost += 0.25 * t_dim["confidence"]
+
+    # 5. Tones matches
+    for tn_dim in query_dims.get("tones", []):
+        val = tn_dim["value"].lower()
+        if val in combined_book_text:
+            boost += 0.15 * tn_dim["confidence"]
+
+    # 6. Genres matches
+    for g_dim in query_dims.get("genres", []):
+        val = g_dim["value"].lower()
+        if val in combined_book_text:
+            boost += 0.2 * g_dim["confidence"]
+
+    # 7. Intents matches
+    for int_dim in query_dims.get("intents", []):
+        val = int_dim["value"].lower()
+        if val in combined_book_text:
+            boost += 0.15 * int_dim["confidence"]
+
+    # Apply the boost: reduce distance score
+    adjusted_d = max(0.05, d - boost)
+    return adjusted_d
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -250,7 +322,14 @@ def get_semantic_recommendations(user_query: str, n_results: int = 5) -> List[Di
         logger.info("[Stage 5] Retrieved %d candidates from vector DB", len(semantic_matches))
 
         # Stage 5.5 — Hybrid Ranking
+        query_dims = interpreted.get("dimensions", {})
         for book in semantic_matches:
+            # Adjust distance score based on extracted dimensions
+            adjusted_dist = adjust_distance_by_vibe_profile(book, query_dims)
+            book["distance_score"] = adjusted_dist
+            # Recalculate soul_match pct based on the adjusted distance
+            book["soul_match"] = round(max(0.0, min(100.0, (1.0 - adjusted_dist / 2.0) * 100)))
+
             book["hybrid_score"] = compute_hybrid_score(book, user_query)
 
         semantic_matches.sort(

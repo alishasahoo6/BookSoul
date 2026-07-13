@@ -5,7 +5,7 @@ Scores two books across literary dimensions using rule-based keyword analysis
 on their description and soul fields. Zero Gemini dependency.
 """
 
-from typing import Dict, List, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from booksoul.pipeline.knowledge_retriever import get_book
 from booksoul.generators.book_soul import generate_book_soul
 from booksoul.common.utils import setup_logger
